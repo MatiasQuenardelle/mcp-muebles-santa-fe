@@ -62,9 +62,6 @@ export default function WhatIsIncluded() {
           <div className="max-w-sm mb-3">
             <WhatsAppButton text="Consultar precio para mi medida" size="small" />
           </div>
-          <p className="text-xs text-brand-muted mt-2">
-            Estamos tomando proyectos para este mes. Los turnos se ocupan r&aacute;pido.
-          </p>
         </div>
 
         {/* Photos */}
