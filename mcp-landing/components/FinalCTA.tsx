@@ -26,7 +26,7 @@ export default function FinalCTA() {
         </p>
 
         <div className="max-w-sm mx-auto mb-4">
-          <WhatsAppButton text="Agendar medici&oacute;n por WhatsApp" pulse />
+          <WhatsAppButton text="Agendar medici&oacute;n por WhatsApp" pulse size="small" />
         </div>
         <p className="text-sm text-brand-muted-dark">
           Sin compromiso. La medici&oacute;n es el primer paso, no una obligaci&oacute;n de compra.

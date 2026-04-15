@@ -32,22 +32,6 @@ body {
   animation: pulse-glow 2.5s ease-in-out infinite;
 }
 
-/* Sticky CTA entrance */
-@keyframes slide-up-in {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-up {
-  animation: slide-up-in 0.4s ease-out both;
-}
-
 /* Gold gradient text */
 .text-gradient-gold {
   background: linear-gradient(135deg, #C4A245 0%, #D4B85A 50%, #C4A245 100%);

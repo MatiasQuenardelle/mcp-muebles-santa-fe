@@ -10,13 +10,12 @@ import Testimonials from '@/components/Testimonials'
 import FAQ from '@/components/FAQ'
 import Location from '@/components/Location'
 import FinalCTA from '@/components/FinalCTA'
-import StickyMobileCTA from '@/components/StickyMobileCTA'
 
 export default function Home() {
   return (
     <>
       <TopBar />
-      <main className="pb-16 md:pb-0">
+      <main>
         <Hero />
         <WhatIsIncluded />
         <UrgencyBanner />
@@ -39,7 +38,6 @@ export default function Home() {
           </div>
         </div>
       </footer>
-      <StickyMobileCTA />
     </>
   )
 }
