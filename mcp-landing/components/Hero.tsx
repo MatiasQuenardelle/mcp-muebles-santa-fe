@@ -28,10 +28,10 @@ export default function Hero() {
             una propuesta lista para ejecutar. Sin vueltas.
           </p>
 
-          <div className="max-w-sm mb-3">
+          <div className="hidden md:block max-w-sm mb-3">
             <WhatsAppButton text="Coordinar medici&oacute;n gratis" pulse />
           </div>
-          <p className="text-sm text-brand-muted-dark">
+          <p className="hidden md:block text-sm text-brand-muted-dark">
             Presupuesto sin compromiso &middot; Respuesta en el d&iacute;a
           </p>
         </div>
