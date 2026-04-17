@@ -20,16 +20,22 @@ export default function FinalCTA() {
           Si quer&eacute;s resolver tu cocina, empez&aacute; por una buena medici&oacute;n.
         </h2>
         <p className="text-brand-muted-dark mb-8 leading-relaxed">
-          No hace falta que tengas todo claro todav&iacute;a. Con una visita, yo
-          entiendo tu espacio y te doy un panorama real de qu&eacute; se puede
-          hacer y cu&aacute;nto cuesta.
+          No hace falta que tengas todo claro todav&iacute;a. Con una foto, medidas
+          aproximadas o una visita coordinada, te doy un panorama real de qu&eacute;
+          se puede hacer y cu&aacute;nto cuesta.
         </p>
 
         <div className="max-w-sm mx-auto mb-4">
-          <WhatsAppButton text="Agendar medici&oacute;n por WhatsApp" pulse size="small" />
+          <WhatsAppButton
+            text="Hablar con Marcelo por WhatsApp"
+            pulse
+            size="small"
+            placement="final_cta"
+            message="Hola Marcelo, quiero avanzar con mi cocina a medida. ¿Podemos verlo por WhatsApp?"
+          />
         </div>
         <p className="text-sm text-brand-muted-dark">
-          Sin compromiso. La medici&oacute;n es el primer paso, no una obligaci&oacute;n de compra.
+          Sin compromiso. Te orientamos primero y reci&eacute;n despu&eacute;s definimos si hace falta medir.
         </p>
       </div>
     </section>

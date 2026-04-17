@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, DM_Serif_Display } from 'next/font/google'
+import Script from 'next/script'
+import { GOOGLE_ADS_ID, GOOGLE_TAG_ID } from '@/lib/constants'
 import './globals.css'
 
 const inter = Inter({
@@ -35,9 +37,29 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const primaryGoogleTagId = GOOGLE_TAG_ID || GOOGLE_ADS_ID
+  const tagConfigs = Array.from(new Set([GOOGLE_TAG_ID, GOOGLE_ADS_ID].filter(Boolean)))
+
   return (
     <html lang="es">
       <body className={`${inter.variable} ${dmSerif.variable} font-sans`}>
+        {primaryGoogleTagId ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${primaryGoogleTagId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-tag-manager" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                window.gtag = window.gtag || gtag;
+                gtag('js', new Date());
+                ${tagConfigs.map((id) => `gtag('config', '${id}');`).join('\n')}
+              `}
+            </Script>
+          </>
+        ) : null}
         {children}
       </body>
     </html>
