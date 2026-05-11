@@ -1,10 +1,11 @@
-const DEFAULT_WHATSAPP_NUMBER = '5493425696876'
+const DEFAULT_WHATSAPP_NUMBER = '5493425196295'
 
 const configuredWhatsAppNumber = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, '')
+const rawWhatsAppNumber = configuredWhatsAppNumber || DEFAULT_WHATSAPP_NUMBER
 
-export const WHATSAPP_NUMBER = configuredWhatsAppNumber || DEFAULT_WHATSAPP_NUMBER
+export const WHATSAPP_NUMBER = normalizeWhatsAppUrlNumber(rawWhatsAppNumber)
 export const HAS_CONFIGURED_WHATSAPP_NUMBER = configuredWhatsAppNumber.length > 0
-export const WHATSAPP_DISPLAY_NUMBER = formatWhatsAppDisplay(WHATSAPP_NUMBER)
+export const WHATSAPP_DISPLAY_NUMBER = formatWhatsAppDisplay(rawWhatsAppNumber)
 
 export const BASE_PRICE_LABEL = 'Desde $660.000 todo incluido'
 export const WHATSAPP_DEFAULT_MESSAGE =
@@ -20,9 +21,30 @@ interface WhatsAppUrlOptions {
   queryString?: string
 }
 
+function normalizeWhatsAppUrlNumber(phone: string) {
+  if (!phone) {
+    return ''
+  }
+
+  if (phone.length === 12 && phone.startsWith('54')) {
+    return `549${phone.slice(2)}`
+  }
+
+  return phone
+}
+
 function formatWhatsAppDisplay(phone: string) {
   if (!phone) {
     return ''
+  }
+
+  if (phone.length === 12 && phone.startsWith('54')) {
+    const country = '+54'
+    const area = phone.slice(2, 5)
+    const firstBlock = phone.slice(5, 8)
+    const secondBlock = phone.slice(8, 12)
+
+    return `${country} ${area} ${firstBlock}-${secondBlock}`
   }
 
   if (phone.length === 13 && phone.startsWith('549')) {
