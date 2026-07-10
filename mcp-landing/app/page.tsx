@@ -11,6 +11,7 @@ import FAQ from '@/components/FAQ'
 import Location from '@/components/Location'
 import FinalCTA from '@/components/FinalCTA'
 import StickyMobileCTA from '@/components/StickyMobileCTA'
+import Asistente from '@/components/Asistente'
 
 export default function Home() {
   return (
@@ -30,6 +31,7 @@ export default function Home() {
         <FinalCTA />
       </main>
       <StickyMobileCTA />
+      <Asistente />
       <footer className="bg-brand-dark border-t border-white/10">
         <div className="max-w-6xl mx-auto px-5 py-10 text-center">
           <div className="text-brand-muted-dark text-sm">
