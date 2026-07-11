@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, DM_Serif_Display } from 'next/font/google'
 import Script from 'next/script'
-import { GOOGLE_ADS_ID, GOOGLE_TAG_ID } from '@/lib/constants'
+import { CLARITY_ID, GOOGLE_ADS_ID, GOOGLE_TAG_ID } from '@/lib/constants'
 import './globals.css'
 
 const inter = Inter({
@@ -59,6 +59,17 @@ export default function RootLayout({
               `}
             </Script>
           </>
+        ) : null}
+        {CLARITY_ID ? (
+          <Script id="microsoft-clarity" strategy="afterInteractive">
+            {`
+              (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+              })(window, document, "clarity", "script", "${CLARITY_ID}");
+            `}
+          </Script>
         ) : null}
         {children}
       </body>

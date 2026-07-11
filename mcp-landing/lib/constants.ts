@@ -14,6 +14,7 @@ export const WHATSAPP_DEFAULT_MESSAGE =
 export const GOOGLE_TAG_ID = (process.env.NEXT_PUBLIC_GOOGLE_TAG_ID ?? '').trim()
 export const GOOGLE_ADS_ID = (process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? '').trim()
 export const GOOGLE_ADS_SEND_TO = (process.env.NEXT_PUBLIC_GOOGLE_ADS_SEND_TO ?? '').trim()
+export const CLARITY_ID = (process.env.NEXT_PUBLIC_CLARITY_ID ?? '').trim()
 
 interface WhatsAppUrlOptions {
   baseMessage?: string

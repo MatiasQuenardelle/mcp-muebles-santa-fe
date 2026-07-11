@@ -1,2 +1,5 @@
 .DS_Store
 .vscode/
+ad material/
+mcp-video-ad/out/
+mcp-video-ad/node_modules/
