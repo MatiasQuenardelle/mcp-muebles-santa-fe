@@ -7,6 +7,81 @@
 
 ---
 
+## Actualizacion urgente - 18 de abril de 2026
+
+### Incidente de CPC fuera de rango (hoy)
+
+| Metrica | Valor |
+|---|---|
+| Clicks | 7 |
+| Impresiones | 136 |
+| CPC promedio | ARS $928 |
+| Costo | ARS $6.5 K |
+| Variacion vs baseline del plan ($213.06) | ~4.4x |
+
+### Diagnostico preliminar
+
+1. **No parece una variacion normal** — Con tan pocos clicks, uno o dos terminos caros pueden distorsionar el promedio, pero igual el salto de ~$213 a $928 es demasiado alto para dejarlo correr.
+
+2. **Primera sospecha: cambio de bidding o perdida del limite de CPC** — Si la campana quedo en Maximizar clics sin limite de CPC maximo, Google puede subir fuerte las pujas para ganar clicks escasos.
+
+3. **Segunda sospecha: terminos demasiado genericos** — Ya habiamos detectado que keywords como "cocinas integrales modernas" eran mas caras. Si hoy entraron mas subastas de ese tipo, el CPC pudo dispararse.
+
+4. **Tercera sospecha: landing menos relevante que la intencion de busqueda** — El sitio publico actual sigue teniendo una navegacion muy amplia (cocinas, placares, herrajes, busqueda laboral, paginas web, etc.). Si los anuncios estan mandando trafico ahi en lugar de una landing enfocada, eso puede empeorar relevancia y experiencia de pagina.
+
+### Acciones inmediatas para hoy (orden recomendado)
+
+1. **Frenar el sobrecosto hoy mismo**
+   - Si la campana principal esta en **Maximizar clics**, fijar **CPC maximo**.
+   - Punto de partida sugerido para la campana principal: **ARS $220 - $280**.
+   - Punto de partida sugerido para la campana de precio/presupuesto: **ARS $120 - $180**.
+   - Si esta en **CPC manual**, bajar pujas de keywords caras y desactivar cualquier ajuste agresivo temporalmente.
+
+2. **Revisar Historial de cambios del 18 de abril**
+   - Buscar si hoy cambio alguna de estas variables:
+     - estrategia de puja
+     - limite de CPC
+     - concordancias
+     - presupuesto
+     - ajustes por dispositivo
+     - ubicaciones
+     - partners de busqueda
+
+3. **Abrir Search terms de hoy y de los ultimos 7 dias**
+   - Ordenar por **Costo** y detectar que busquedas consumieron esos 7 clicks.
+   - Agregar negativas si aparecen terminos de baja intencion o intencion incorrecta.
+   - Prioridad de negativas a revisar: `empleo`, `trabajo`, `placares`, `rack tv`, `oficina`, `bano`, `accesorios`, `herrajes`, `gratis`, `usado`, `reparacion`.
+
+4. **Pausar temporalmente las keywords mas genericas**
+   - Empezar por las que ya venian mostrando menor eficiencia:
+     - `cocinas integrales modernas`
+     - `diseno de cocinas modernas`
+     - `remodelacion cocina`
+   - Mantener activas las de alta intencion local:
+     - `cocinas a medida santa fe`
+     - `muebles de cocina a medida santa fe`
+     - `amoblamientos de cocina santa fe`
+     - `presupuesto cocina santa fe`
+     - `cocina a medida precio santa fe`
+
+5. **Ajustar ubicacion**
+   - Confirmar que la campana apunte a personas **en o habitualmente en** Santa Fe y alrededores, no solo interesadas en Santa Fe.
+
+6. **Revisar destino de los anuncios**
+   - Si la campana principal todavia envia trafico a la home general de Google Sites, moverla a una landing mas enfocada en:
+     - cocinas a medida
+     - precio visible
+     - WhatsApp como CTA principal
+     - menos enlaces de fuga
+
+### Regla de decision para las proximas 48 horas
+
+- Si una keyword supera **ARS $300 por click** y no genera una consulta valida, **pausar**.
+- Si un termino de busqueda gasta mas de **ARS $600-900** sin señal de intencion clara, **agregar negativa**.
+- Si una landing tiene mucho rebote o distrae con enlaces secundarios, **sacarla de trafico pago**.
+
+---
+
 ## 1. Diagnostico de la situacion actual
 
 ### Performance general (1 Feb - 11 Abr 2026)
