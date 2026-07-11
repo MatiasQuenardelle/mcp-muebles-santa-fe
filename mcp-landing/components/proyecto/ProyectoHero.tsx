@@ -49,13 +49,25 @@ export default function ProyectoHero() {
           </a>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-brand-muted-dark">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-brand-muted-dark mb-12">
           {checks.map((check) => (
             <span key={check} className="inline-flex items-center gap-2">
               <span className="text-brand-gold">✓</span>
               {check}
             </span>
           ))}
+        </div>
+
+        <div className="relative rounded-2xl overflow-hidden ring-1 ring-brand-gold/20">
+          <img
+            src="/cocina-oscura.png"
+            alt="Cocina a medida fabricada e instalada por MCP en Santa Fe"
+            className="w-full aspect-[4/3] sm:aspect-[16/9] object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/50 via-transparent to-transparent" />
+          <p className="absolute bottom-3 left-4 right-4 text-left text-xs text-white/80">
+            Trabajo real: cocina fabricada e instalada por MCP en Santa Fe
+          </p>
         </div>
       </div>
     </section>

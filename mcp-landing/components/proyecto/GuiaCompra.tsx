@@ -59,6 +59,10 @@ const mesadas = [
       'Sellado profesional incluido',
       'Integración perfecta al mueble',
     ],
+    images: [
+      { src: '/mesada-granito.png', alt: 'Muestra real de mesada de granito gris' },
+      { src: '/granito-perla.png', alt: 'Muestra real de granito gris perla' },
+    ],
   },
   {
     tag: 'Sintético premium',
@@ -70,6 +74,7 @@ const mesadas = [
       'Mayor durabilidad',
       'Con o sin colocación',
     ],
+    images: [] as { src: string; alt: string }[],
   },
 ]
 
@@ -189,6 +194,24 @@ export default function GuiaCompra() {
                       </li>
                     ))}
                   </ul>
+                  {card.images.length > 0 ? (
+                    <div className="mt-6">
+                      <div className="grid grid-cols-2 gap-3">
+                        {card.images.map((img) => (
+                          <img
+                            key={img.src}
+                            src={img.src}
+                            alt={img.alt}
+                            loading="lazy"
+                            className="w-full aspect-square object-cover rounded-lg ring-1 ring-white/10"
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs text-brand-muted-dark mt-2">
+                        Muestras reales: granito gris y gris perla
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))}
