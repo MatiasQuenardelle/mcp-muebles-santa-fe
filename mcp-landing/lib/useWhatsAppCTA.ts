@@ -48,6 +48,32 @@ export function trackWhatsAppClick({
   }
 }
 
+export function trackChatbotOpen({
+  ctaLabel,
+  placement,
+}: {
+  ctaLabel: string
+  placement: string
+}) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const eventPayload = {
+    event_category: 'lead',
+    event_label: `${placement}:${ctaLabel}`,
+    cta_label: ctaLabel,
+    placement,
+  }
+
+  window.dataLayer?.push({
+    event: 'chatbot_open',
+    ...eventPayload,
+  })
+
+  window.gtag?.('event', 'chatbot_open', eventPayload)
+}
+
 export function useWhatsAppCTA({
   baseMessage,
   ctaLabel,

@@ -1,4 +1,5 @@
 import WhatsAppButton from '../WhatsAppButton'
+import ChatCTAButton from './ChatCTAButton'
 
 const lineas = [
   {
@@ -101,11 +102,11 @@ export default function PreciosReferencia() {
         </div>
 
         <div className="max-w-xs mx-auto mb-20">
-          <WhatsAppButton
+          <ChatCTAButton
             text="Quiero saber el precio exacto"
             size="small"
+            source="precios"
             placement="proyecto_precios"
-            message="Hola Marcelo, vi los precios de referencia en la web y quiero cotizar mi cocina."
           />
         </div>
 

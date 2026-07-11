@@ -14,6 +14,14 @@ const GREETING: Message = {
     '¡Hola! Soy el asistente de MCP Muebles. Te puedo dar una estimación orientativa del precio de tu cocina a medida. Contame, ¿qué estás buscando?',
 }
 
+const CONTEXTUAL_GREETINGS: Record<string, string> = {
+  hero: '¡Hola! Soy el asistente de MCP Muebles. Contame qué cocina tenés en mente (medidas aproximadas, si es en L o recta) y te doy una estimación al instante.',
+  precios:
+    '¡Hola! Para darte un precio más exacto, pasame las medidas de tu cocina (aunque sean aproximadas) y qué línea te interesa: Económica, Estándar o Premium.',
+  final:
+    '¡Hola! Contame qué necesitás para tu cocina y te armo una estimación al instante. Después, si querés avanzar, seguís directo con Marcelo.',
+}
+
 const MAX_USER_MESSAGES = 20
 
 export default function ChatWidget() {
@@ -37,6 +45,25 @@ export default function ChatWidget() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, isLoading, isOpen])
+
+  useEffect(() => {
+    function handleOpenChat(event: Event) {
+      const source = (event as CustomEvent<{ source?: string }>).detail?.source
+      setIsOpen(true)
+      // Solo cambia el saludo si la conversación todavía no arrancó
+      const greeting = source ? CONTEXTUAL_GREETINGS[source] : undefined
+      if (greeting) {
+        setMessages((prev) =>
+          prev.some((m) => m.role === 'user')
+            ? prev
+            : [{ role: 'assistant', content: greeting }]
+        )
+      }
+    }
+
+    window.addEventListener('mcp:open-chat', handleOpenChat)
+    return () => window.removeEventListener('mcp:open-chat', handleOpenChat)
+  }, [])
 
   async function sendMessage() {
     const text = input.trim()

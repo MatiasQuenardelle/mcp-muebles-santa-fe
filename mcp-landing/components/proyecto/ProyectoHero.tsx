@@ -1,4 +1,4 @@
-import WhatsAppButton from '../WhatsAppButton'
+import ChatCTAButton from './ChatCTAButton'
 
 const checks = [
   'Melamina Egger importada',
@@ -30,16 +30,16 @@ export default function ProyectoHero() {
         <p className="text-brand-muted-dark text-lg leading-relaxed mb-8 max-w-xl mx-auto">
           Todo lo que ten&eacute;s que saber antes de encargar tu cocina: c&oacute;mo
           trabajamos, qu&eacute; materiales usamos y cu&aacute;nto cuesta. Le&eacute;lo
-          tranquilo y escribinos cuando quieras.
+          tranquilo y cotiz&aacute; al instante con nuestro asistente.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-          <WhatsAppButton
-            text="Pedir presupuesto por WhatsApp"
+          <ChatCTAButton
+            text="Cotizá tu cocina al instante"
             size="small"
             fullWidth={false}
+            source="hero"
             placement="proyecto_hero"
-            message="Hola Marcelo, estuve leyendo la guía de Proyecto Cocina y quiero pedir un presupuesto."
           />
           <a
             href="#precios"

@@ -32,6 +32,20 @@ body {
   animation: pulse-glow 2.5s ease-in-out infinite;
 }
 
+/* Chat CTA pulse glow (gold) */
+@keyframes pulse-glow-gold {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(196, 162, 69, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(196, 162, 69, 0);
+  }
+}
+
+.animate-pulse-glow-gold {
+  animation: pulse-glow-gold 2.5s ease-in-out infinite;
+}
+
 /* Gold gradient text */
 .text-gradient-gold {
   background: linear-gradient(135deg, #C4A245 0%, #D4B85A 50%, #C4A245 100%);
