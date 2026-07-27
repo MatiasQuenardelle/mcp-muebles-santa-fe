@@ -1,33 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-
-const faqs = [
-  {
-    q: '¿Es caro?',
-    a: 'El precio incluye fabricación, materiales de primera y colocación profesional. Si lo comparás con un mueble de línea que no entra bien, más los costos de adaptación, salís perdiendo. Acá pagás una vez y queda para siempre.',
-  },
-  {
-    q: '¿Cuánto tarda?',
-    a: 'Entre 15 y 20 días hábiles desde que confirmás. Te avisamos en cada etapa. La colocación se hace en un solo día, sin que tengas que hacer nada.',
-  },
-  {
-    q: '¿Los materiales son buenos de verdad?',
-    a: 'Usamos melamina Egger importada, la misma que usan las cocinas de alta gama. Las correderas son Grupo Euro con cierre suave. No mezclamos materiales de calidad con herrajes baratos: todo tiene que durar.',
-  },
-  {
-    q: '¿Y si mi espacio tiene formas raras?',
-    a: 'Justamente para eso somos a medida. Techos inclinados, columnas, rincones irregulares: todo tiene solución. Antes de fabricar, hacemos el relevamiento detallado del espacio.',
-  },
-  {
-    q: '¿Cómo es la forma de pago?',
-    a: 'Trabajamos con pagos por etapas. Solo abonás los materiales para arrancar la producción. El resto se paga en cuotas acordadas durante el proceso. Sin financiación bancaria, trato directo.',
-  },
-  {
-    q: '¿Cómo sé que van a cumplir?',
-    a: 'Damos garantía escrita de 12 meses. Si algo falla, lo resolvemos nosotros sin que te cueste nada extra. Trabajamos así hace años y no nos podemos dar el lujo de hacer las cosas mal.',
-  },
-]
+import { proyectoFaqs as faqs } from '@/lib/faqData'
 
 export default function ProyectoFAQ() {
   const [open, setOpen] = useState<number | null>(null)

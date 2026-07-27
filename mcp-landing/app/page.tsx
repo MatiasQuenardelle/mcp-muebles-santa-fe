@@ -11,10 +11,14 @@ import FAQ from '@/components/FAQ'
 import Location from '@/components/Location'
 import FinalCTA from '@/components/FinalCTA'
 import StickyMobileCTA from '@/components/StickyMobileCTA'
+import JsonLd from '@/components/JsonLd'
+import { businessJsonLd, cocinaProductJsonLd, faqPageJsonLd } from '@/lib/structuredData'
+import { homeFaqs } from '@/lib/faqData'
 
 export default function Home() {
   return (
     <>
+      <JsonLd data={[businessJsonLd, cocinaProductJsonLd, faqPageJsonLd(homeFaqs)]} />
       <TopBar />
       <main className="pb-24 md:pb-0">
         <Hero />

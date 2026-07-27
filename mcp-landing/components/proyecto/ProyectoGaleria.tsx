@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 const photos = [
   { src: '/cocina-moderna.png', alt: 'Cocina en L oscura con madera clara y horno empotrado', className: 'md:col-span-2 aspect-[16/9]' },
   { src: '/cocina-madera.png', alt: 'Cocina en madera con esquinero y mesada de granito', className: 'aspect-square' },
@@ -28,11 +30,12 @@ export default function ProyectoGaleria() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {photos.map((photo, i) => (
             <div key={i} className={`group overflow-hidden rounded-xl ${photo.className} relative cursor-pointer`}>
-              <img
+              <Image
                 src={photo.src}
                 alt={photo.alt}
-                loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                fill
+                sizes="(max-width: 768px) 50vw, 33vw"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

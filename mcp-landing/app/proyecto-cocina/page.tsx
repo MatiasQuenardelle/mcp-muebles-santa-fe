@@ -7,11 +7,15 @@ import PreciosReferencia from '@/components/proyecto/PreciosReferencia'
 import ProyectoFAQ from '@/components/proyecto/ProyectoFAQ'
 import ProyectoCTA from '@/components/proyecto/ProyectoCTA'
 import ChatWidget from '@/components/proyecto/ChatWidget'
+import JsonLd from '@/components/JsonLd'
+import { breadcrumbJsonLd, faqPageJsonLd } from '@/lib/structuredData'
+import { proyectoFaqs } from '@/lib/faqData'
 
 export const metadata: Metadata = {
   title: 'Proyecto Cocina: Guía y Precios de Cocinas a Medida en Santa Fe | MCP',
   description:
     'Guía de compra completa para tu cocina a medida en Santa Fe: cómo trabajamos, materiales (melamina Egger, herrajes Grupo Euro), precios de referencia por metro lineal, mesadas de granito instaladas y preguntas frecuentes.',
+  alternates: { canonical: '/proyecto-cocina' },
   openGraph: {
     title: 'Proyecto Cocina: Guía y Precios de Cocinas a Medida en Santa Fe | MCP',
     description:
@@ -24,6 +28,15 @@ export const metadata: Metadata = {
 export default function ProyectoCocina() {
   return (
     <>
+      <JsonLd
+        data={[
+          faqPageJsonLd(proyectoFaqs),
+          breadcrumbJsonLd([
+            { name: 'Inicio', path: '/' },
+            { name: 'Proyecto Cocina', path: '/proyecto-cocina' },
+          ]),
+        ]}
+      />
       <TopBar />
       <main>
         <ProyectoHero />

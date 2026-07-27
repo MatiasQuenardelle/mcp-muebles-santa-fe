@@ -7,6 +7,8 @@ export const WHATSAPP_NUMBER = normalizeWhatsAppUrlNumber(rawWhatsAppNumber)
 export const HAS_CONFIGURED_WHATSAPP_NUMBER = configuredWhatsAppNumber.length > 0
 export const WHATSAPP_DISPLAY_NUMBER = formatWhatsAppDisplay(rawWhatsAppNumber)
 
+export const SITE_URL = 'https://www.mcpmuebles.com'
+
 export const BASE_PRICE_LABEL = 'Desde $660.000 todo incluido'
 export const WHATSAPP_DEFAULT_MESSAGE =
   'Hola Marcelo, quiero consultar por una cocina a medida. ¿Me podés pasar un presupuesto?'
@@ -20,6 +22,7 @@ interface WhatsAppUrlOptions {
   baseMessage?: string
   pagePath?: string
   queryString?: string
+  origin?: string
 }
 
 function normalizeWhatsAppUrlNumber(phone: string) {
@@ -65,6 +68,7 @@ export function buildWhatsAppUrl({
   baseMessage = WHATSAPP_DEFAULT_MESSAGE,
   pagePath,
   queryString,
+  origin,
 }: WhatsAppUrlOptions = {}) {
   if (!WHATSAPP_NUMBER) {
     return '#contacto-mcp'
@@ -72,12 +76,15 @@ export function buildWhatsAppUrl({
 
   const normalizedPath = pagePath && pagePath !== '/' ? pagePath : ''
   const normalizedQuery = queryString ? `?${queryString}` : ''
-  const attributionLine =
+  const referenceLine =
     normalizedPath || normalizedQuery
       ? `Referencia web: ${normalizedPath || '/'}${normalizedQuery}`
       : ''
+  const originLine = origin ? `Origen: ${origin}` : ''
 
-  const text = [baseMessage, attributionLine].filter(Boolean).join('\n\n')
+  const text = [baseMessage, [originLine, referenceLine].filter(Boolean).join('\n')]
+    .filter(Boolean)
+    .join('\n\n')
 
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
 }

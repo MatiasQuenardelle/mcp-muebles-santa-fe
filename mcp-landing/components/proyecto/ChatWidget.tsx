@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useWhatsAppCTA } from '@/lib/useWhatsAppCTA'
+import { getAttribution } from '@/lib/attribution'
+import { detectPhone, postLead, trackChatbotLead } from '@/lib/lead'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -31,6 +33,7 @@ export default function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false)
   const [hasError, setHasError] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const leadSentRef = useRef(false)
 
   const { href: whatsAppHref, handleClick: trackWhatsApp } = useWhatsAppCTA({
     baseMessage:
@@ -76,6 +79,23 @@ export default function ChatWidget() {
     setInput('')
     setIsLoading(true)
     setHasError(false)
+
+    // Captura de lead: si el visitante deja un teléfono en el chat, lo registramos
+    // una sola vez con su origen de atribución y el hilo de la conversación.
+    const phone = detectPhone(text)
+    if (phone && !leadSentRef.current) {
+      leadSentRef.current = true
+      const attribution = getAttribution()
+      postLead({
+        source: 'chatbot',
+        page: window.location.pathname || '/proyecto-cocina',
+        phone,
+        message: text,
+        attribution,
+        transcript: nextMessages.slice(1).slice(-10),
+      })
+      trackChatbotLead({ placement: 'proyecto_chatbot', attribution })
+    }
 
     try {
       const response = await fetch('/api/chat', {

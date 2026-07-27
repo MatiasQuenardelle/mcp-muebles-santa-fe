@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import ChatCTAButton from './ChatCTAButton'
 
 const checks = [
@@ -58,11 +59,14 @@ export default function ProyectoHero() {
           ))}
         </div>
 
-        <div className="relative rounded-2xl overflow-hidden ring-1 ring-brand-gold/20">
-          <img
+        <div className="relative aspect-[4/3] sm:aspect-[16/9] rounded-2xl overflow-hidden ring-1 ring-brand-gold/20">
+          <Image
             src="/cocina-oscura.png"
             alt="Cocina a medida fabricada e instalada por MCP en Santa Fe"
-            className="w-full aspect-[4/3] sm:aspect-[16/9] object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 768px"
+            priority
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/50 via-transparent to-transparent" />
           <p className="absolute bottom-3 left-4 right-4 text-left text-xs text-white/80">

@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 const steps = [
   {
     num: '1',
@@ -198,13 +200,18 @@ export default function GuiaCompra() {
                     <div className="mt-6">
                       <div className="grid grid-cols-2 gap-3">
                         {card.images.map((img) => (
-                          <img
+                          <div
                             key={img.src}
-                            src={img.src}
-                            alt={img.alt}
-                            loading="lazy"
-                            className="w-full aspect-square object-cover rounded-lg ring-1 ring-white/10"
-                          />
+                            className="relative aspect-square rounded-lg overflow-hidden ring-1 ring-white/10"
+                          >
+                            <Image
+                              src={img.src}
+                              alt={img.alt}
+                              fill
+                              sizes="(max-width: 768px) 50vw, 25vw"
+                              className="object-cover"
+                            />
+                          </div>
                         ))}
                       </div>
                       <p className="text-xs text-brand-muted-dark mt-2">

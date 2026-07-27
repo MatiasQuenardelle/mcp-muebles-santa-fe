@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import WhatsAppButton from './WhatsAppButton'
 
 const items = [
@@ -66,25 +67,31 @@ export default function WhatIsIncluded() {
 
         {/* Photos */}
         <div className="mt-12 md:mt-0 grid grid-cols-2 gap-3">
-          <div className="overflow-hidden rounded-xl col-span-2">
-            <img
+          <div className="relative overflow-hidden rounded-xl col-span-2 aspect-[3/4]">
+            <Image
               src="/cocina-lineal.png"
               alt="Cocina lineal con muebles superiores y mesada de granito"
-              className="object-cover aspect-[3/4] w-full hover:scale-105 transition-transform duration-500"
+              fill
+              sizes="(max-width: 768px) 100vw, 25vw"
+              className="object-cover hover:scale-105 transition-transform duration-500"
             />
           </div>
-          <div className="overflow-hidden rounded-xl">
-            <img
+          <div className="relative overflow-hidden rounded-xl aspect-square">
+            <Image
               src="/granito-perla.png"
               alt="Granito gris perla para mesadas"
-              className="object-cover aspect-square w-full hover:scale-105 transition-transform duration-500"
+              fill
+              sizes="(max-width: 768px) 50vw, 25vw"
+              className="object-cover hover:scale-105 transition-transform duration-500"
             />
           </div>
-          <div className="overflow-hidden rounded-xl">
-            <img
+          <div className="relative overflow-hidden rounded-xl aspect-square">
+            <Image
               src="/mesada-granito.png"
               alt="Mesada de granito natural"
-              className="object-cover aspect-square w-full hover:scale-105 transition-transform duration-500"
+              fill
+              sizes="(max-width: 768px) 50vw, 25vw"
+              className="object-cover hover:scale-105 transition-transform duration-500"
             />
           </div>
         </div>

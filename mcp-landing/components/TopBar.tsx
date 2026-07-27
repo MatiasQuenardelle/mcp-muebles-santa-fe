@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+import logo from '@/public/logo.jpg'
 import { useWhatsAppCTA } from '@/lib/useWhatsAppCTA'
 
 export default function TopBar() {
@@ -14,7 +16,7 @@ export default function TopBar() {
     <header className="bg-brand-dark/95 backdrop-blur-md sticky top-0 z-40 border-b border-white/5">
       <nav className="max-w-6xl mx-auto flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3">
-          <img src="/logo.jpg" alt="MCP - Muebles a Medida" className="h-10 w-auto rounded" />
+          <Image src={logo} alt="MCP - Muebles a Medida" priority className="h-10 w-auto rounded" />
           <span className="text-brand-muted-dark text-sm hidden sm:inline">
             Muebles a Medida &middot; Santa Fe
           </span>

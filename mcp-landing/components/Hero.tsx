@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { BASE_PRICE_LABEL, WHATSAPP_DISPLAY_NUMBER } from '@/lib/constants'
 import HeroIntentOptions from './HeroIntentOptions'
 import WhatsAppButton from './WhatsAppButton'
@@ -78,12 +79,15 @@ export default function Hero() {
 
         {/* Image */}
         <div className="mt-10 md:mt-0 md:py-12">
-          <div className="relative">
+          <div className="relative aspect-[4/3]">
             <div className="absolute -inset-1 bg-gradient-to-br from-brand-gold/20 via-transparent to-brand-gold/10 rounded-2xl blur-sm" />
-            <img
+            <Image
               src="/cocina-moderna.png"
               alt="Cocina a medida fabricada por MCP - Muebles a Medida en Santa Fe"
-              className="relative w-full rounded-2xl object-cover aspect-[4/3] ring-1 ring-white/10"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              priority
+              className="relative rounded-2xl object-cover ring-1 ring-white/10"
             />
             <div className="absolute bottom-4 left-4 bg-brand-dark/80 backdrop-blur-sm text-white text-xs py-2 px-3 rounded-lg border border-white/10">
               Trabajo realizado en Santa Fe

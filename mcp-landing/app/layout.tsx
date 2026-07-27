@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter, DM_Serif_Display } from 'next/font/google'
 import Script from 'next/script'
-import { CLARITY_ID, GOOGLE_ADS_ID, GOOGLE_TAG_ID } from '@/lib/constants'
+import { CLARITY_ID, GOOGLE_ADS_ID, GOOGLE_TAG_ID, SITE_URL } from '@/lib/constants'
+import AttributionTracker from '@/components/AttributionTracker'
 import './globals.css'
 
 const inter = Inter({
@@ -18,17 +19,27 @@ const dmSerif = DM_Serif_Display({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'Cocinas a Medida en Santa Fe | MCP - Muebles a Medida - Presupuesto Gratis',
   description:
     'Cocinas a medida con instalación completa en Santa Fe. Melamina EGGER, granito natural, bacha Johnson incluida. Desde $660.000. Presupuesto gratis por WhatsApp. 20 años de experiencia.',
   keywords:
     'cocinas a medida santa fe, muebles de cocina, amoblamientos de cocina, bajo mesada, cocinas integrales, muebles a medida santa fe',
+  alternates: { canonical: '/' },
   openGraph: {
     title: 'Cocinas a Medida en Santa Fe | MCP - Muebles a Medida',
     description:
       'Tu cocina a medida, instalada y funcionando. Todo incluido desde $660.000. Presupuesto gratis.',
     type: 'website',
     locale: 'es_AR',
+    url: SITE_URL,
+    siteName: 'MCP - Muebles a Medida',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Cocinas a Medida en Santa Fe | MCP - Muebles a Medida',
+    description:
+      'Tu cocina a medida, instalada y funcionando. Todo incluido desde $660.000. Presupuesto gratis.',
   },
 }
 
@@ -71,6 +82,7 @@ export default function RootLayout({
             `}
           </Script>
         ) : null}
+        <AttributionTracker />
         {children}
       </body>
     </html>
