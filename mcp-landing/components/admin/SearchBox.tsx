@@ -9,9 +9,11 @@ import type { ConversationFilter } from '@/lib/crm'
 export default function SearchBox({
   initialValue,
   filter,
+  selectedId,
 }: {
   initialValue: string
   filter: ConversationFilter
+  selectedId: string | null
 }) {
   const router = useRouter()
   const [value, setValue] = useState(initialValue)
@@ -25,6 +27,11 @@ export default function SearchBox({
     }
     if (filter !== 'todas') {
       params.set('f', filter)
+    }
+    // Se conserva la conversación abierta: buscar es para ubicar otra cosa en la
+    // lista, no para cerrar lo que se estaba mirando.
+    if (selectedId) {
+      params.set('c', selectedId)
     }
     const search = params.toString()
     router.push(search ? `/admin?${search}` : '/admin')

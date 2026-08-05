@@ -29,7 +29,15 @@ create table if not exists conversations (
   -- Cuándo se avisó de este lead (Telegram al dejar el teléfono, o webhook al
   -- salir la tarjeta caliente). Se setea una sola vez: hace de lock para no
   -- mandar el mismo lead dos veces por dos caminos distintos.
-  hot_notified_at    timestamptz
+  hot_notified_at    timestamptz,
+  -- Última vez que se abrió la conversación en el panel. Está no leída cuando
+  -- last_message_at > last_read_at. En la base y no en localStorage para que el
+  -- estado sea el mismo desde la compu y desde el celular.
+  last_read_at       timestamptz,
+  -- Conversación de ejemplo, para que el panel no arranque vacío y se entienda
+  -- qué va a mostrar. Se marca a mano; recordTurn nunca la setea, y la borra en
+  -- cuanto entra la primera conversación de verdad.
+  is_demo            boolean     not null default false
 );
 
 create table if not exists messages (
@@ -59,6 +67,8 @@ create table if not exists leads (
 -- Migraciones sobre bases que ya existían (create table if not exists no agrega
 -- columnas nuevas). Repetirlas es inofensivo.
 alter table conversations add column if not exists hot_notified_at timestamptz;
+alter table conversations add column if not exists last_read_at timestamptz;
+alter table conversations add column if not exists is_demo boolean not null default false;
 
 create index if not exists conversations_recent_idx
   on conversations (site_id, last_message_at desc);

@@ -42,6 +42,41 @@ export function formatRelative(value: string): string {
   return formatDateTime(value)
 }
 
+// Clave de día calendario en Buenos Aires ("2026-08-05"), para agrupar los
+// mensajes del thread sin que un mensaje de las 22 h caiga en el día siguiente.
+export function dayKey(value: string): string {
+  return new Date(value).toLocaleDateString('en-CA', { timeZone: TZ })
+}
+
+export function dayLabel(value: string): string {
+  const key = dayKey(value)
+  const now = Date.now()
+  if (key === dayKey(new Date(now).toISOString())) return 'Hoy'
+  if (key === dayKey(new Date(now - 86_400_000).toISOString())) return 'Ayer'
+  return new Date(value).toLocaleDateString('es-AR', {
+    timeZone: TZ,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+// Color estable por nombre, para que cada contacto tenga siempre el mismo avatar.
+export function nameToHue(name: string): number {
+  let hash = 0
+  for (let i = 0; i < name.length; i += 1) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return Math.abs(hash) % 360
+}
+
+export function initials(name: string | null): string | null {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return null
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return parts[0].slice(0, 2).toUpperCase()
+}
+
 // La atribución se guarda como jsonb tal cual la manda el cliente.
 export function originLabel(attribution: Record<string, unknown> | null): string {
   return getOriginLabel((attribution as Attribution | null) ?? null)
@@ -61,6 +96,15 @@ export const STATUS_STYLES: Record<ConversationStatus, string> = {
   presupuestado: 'bg-purple-50 text-purple-800 border-purple-200',
   ganado: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   perdido: 'bg-neutral-100 text-neutral-600 border-neutral-200',
+}
+
+// Punto de color del dropdown de estado, hermano de STATUS_STYLES.
+export const STATUS_DOTS: Record<ConversationStatus, string> = {
+  nuevo: 'bg-brand-gold',
+  contactado: 'bg-blue-500',
+  presupuestado: 'bg-purple-500',
+  ganado: 'bg-emerald-500',
+  perdido: 'bg-neutral-400',
 }
 
 export const TEMPERATURE_LABELS: Record<string, string> = {

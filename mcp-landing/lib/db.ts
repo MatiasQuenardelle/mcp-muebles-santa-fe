@@ -30,6 +30,10 @@ export interface ConversationRow {
   card: ContactCard | null
   card_generated_at: string | null
   card_message_count: number | null
+  // Derivado en el select: hay mensajes posteriores a la última vez que se abrió
+  // la conversación en el panel.
+  unread: boolean
+  is_demo: boolean
 }
 
 export interface MessageRow {
@@ -131,7 +135,22 @@ export async function recordTurn(input: RecordTurnInput): Promise<number> {
     `,
   ])) as [Array<{ message_count: number }>, unknown]
 
-  return upserted[0]?.message_count ?? 0
+  const messageCount = upserted[0]?.message_count ?? 0
+
+  // message_count === 1 solo se da en el INSERT, o sea al crear una conversación
+  // nueva: ese es el momento exacto en que el ejemplo del panel deja de hacer
+  // falta. Se chequea acá y no en cada turno para no pagar un DELETE por mensaje.
+  if (messageCount === 1) {
+    await deleteDemoConversations()
+  }
+
+  return messageCount
+}
+
+// Los mensajes de la demo se van solos por el `on delete cascade` de la FK.
+export async function deleteDemoConversations(): Promise<void> {
+  const sql = db()
+  await sql`delete from conversations where site_id = ${SITE_ID} and is_demo`
 }
 
 export async function countRecentConversations(ipHash: string): Promise<number> {
@@ -218,7 +237,8 @@ export async function listConversations(options?: {
   const rows = await sql`
     select id, started_at, last_message_at, message_count, page, attribution,
            name, phone, went_to_whatsapp, status, notes,
-           card, card_generated_at, card_message_count
+           card, card_generated_at, card_message_count, is_demo,
+           (last_message_at > coalesce(last_read_at, 'epoch'::timestamptz)) as unread
     from conversations
     where site_id = ${SITE_ID}
       and (message_count > 1 or phone is not null)
@@ -232,6 +252,7 @@ export async function listConversations(options?: {
       )
       and (
         ${filter} = 'todas'
+        or (${filter} = 'no_leidas' and last_message_at > coalesce(last_read_at, 'epoch'::timestamptz))
         or (${filter} = 'pendientes' and status = 'nuevo')
         or (${filter} = 'calientes' and card->>'temperatura' = 'caliente')
         or (${filter} = 'con_telefono' and (phone is not null or card->>'telefono' is not null))
@@ -248,11 +269,19 @@ export async function getConversation(id: string): Promise<ConversationRow | nul
   const rows = (await sql`
     select id, started_at, last_message_at, message_count, page, attribution,
            name, phone, went_to_whatsapp, status, notes,
-           card, card_generated_at, card_message_count
+           card, card_generated_at, card_message_count, is_demo,
+           (last_message_at > coalesce(last_read_at, 'epoch'::timestamptz)) as unread
     from conversations
     where id = ${id}::uuid and site_id = ${SITE_ID}
   `) as unknown as ConversationRow[]
   return rows[0] ?? null
+}
+
+// Se llama al abrir la conversación en el panel. Es idempotente: siempre pisa
+// last_read_at con now(), así que reabrirla no reintroduce el "no leída".
+export async function markConversationRead(id: string): Promise<void> {
+  const sql = db()
+  await sql`update conversations set last_read_at = now() where id = ${id}::uuid`
 }
 
 export async function getMessages(conversationId: string): Promise<MessageRow[]> {

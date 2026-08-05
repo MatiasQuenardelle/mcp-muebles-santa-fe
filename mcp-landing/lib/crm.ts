@@ -18,10 +18,16 @@ export const CONVERSATION_STATUSES: ConversationStatus[] = [
 ]
 
 // Filtros de la lista del panel. Viajan por `?f=` en la URL.
-export type ConversationFilter = 'todas' | 'pendientes' | 'calientes' | 'con_telefono'
+export type ConversationFilter =
+  | 'todas'
+  | 'no_leidas'
+  | 'pendientes'
+  | 'calientes'
+  | 'con_telefono'
 
 export const CONVERSATION_FILTERS: ConversationFilter[] = [
   'todas',
+  'no_leidas',
   'pendientes',
   'calientes',
   'con_telefono',
@@ -29,6 +35,7 @@ export const CONVERSATION_FILTERS: ConversationFilter[] = [
 
 export const FILTER_LABELS: Record<ConversationFilter, string> = {
   todas: 'Todas',
+  no_leidas: 'No leídas',
   pendientes: 'Sin contactar',
   calientes: 'Calientes',
   con_telefono: 'Con teléfono',

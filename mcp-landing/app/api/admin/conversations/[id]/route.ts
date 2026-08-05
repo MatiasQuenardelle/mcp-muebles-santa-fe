@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { generateCard } from '@/lib/card'
 import { CONVERSATION_STATUSES, type ConversationStatus } from '@/lib/crm'
-import { getMessages, saveCard, updateConversation } from '@/lib/db'
+import { getMessages, markConversationRead, saveCard, updateConversation } from '@/lib/db'
 import { notifyHotLead } from '@/lib/notify'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -46,6 +46,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   try {
     if (Object.keys(fields).length > 0) {
       await updateConversation(params.id, fields)
+    }
+    // Lo manda MarkRead al abrir la conversación en el panel.
+    if (input.read === true) {
+      await markConversationRead(params.id)
     }
     // Regeneración a pedido desde el detalle. Se hace acá y no encolándola: la
     // cola solo toma charlas quietas hace 20 minutos, así que una conversación
