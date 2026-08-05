@@ -63,11 +63,13 @@ export default async function AdminPage({
       <CardGenerator />
 
       {conversations.length === 0 ? (
-        <p className="text-sm text-brand-muted text-center py-12">
-          {search
-            ? 'No hay consultas que coincidan con la búsqueda.'
-            : 'Todavía no hay conversaciones registradas.'}
-        </p>
+        search ? (
+          <p className="text-sm text-brand-muted text-center py-12">
+            No hay consultas que coincidan con la búsqueda.
+          </p>
+        ) : (
+          <EmptyState />
+        )
       ) : (
         <ul className="space-y-2.5 mt-4">
           {conversations.map((conversation) => {
@@ -132,6 +134,54 @@ export default async function AdminPage({
         </ul>
       )}
     </main>
+  )
+}
+
+// Ejemplo estático para que el panel no arranque en blanco: muestra cómo se va
+// a ver una consulta real. Desaparece con la primera conversación de verdad.
+function EmptyState() {
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-brand-muted text-center">
+        Todavía no entró ninguna consulta. Cuando alguien hable con el asistente de la web, la vas a
+        ver acá así:
+      </p>
+      <div
+        aria-hidden
+        className="mt-4 bg-white rounded-2xl border border-dashed border-brand-border p-4 opacity-60 select-none"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-semibold text-brand-dark">Sofía Ramírez</div>
+            <div className="text-sm text-brand-muted tabular-nums">342 555-1234</div>
+          </div>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <span
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES.nuevo}`}
+            >
+              {STATUS_LABELS.nuevo}
+            </span>
+            <span
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${TEMPERATURE_STYLES.caliente}`}
+            >
+              {TEMPERATURE_LABELS.caliente}
+            </span>
+          </div>
+        </div>
+        <p className="text-sm text-brand-dark/80 mt-2">
+          Quiere una cocina de 3,5 metros lineales en L para su departamento en Candioti. Preguntó
+          por la línea Estándar y dejó el teléfono para que la llamen.
+        </p>
+        <div className="flex items-center gap-2 mt-3 text-[11px] text-brand-muted flex-wrap">
+          <span>hace 2 h</span>
+          <span aria-hidden>·</span>
+          <span>Google Ads</span>
+          <span aria-hidden>·</span>
+          <span>8 mensajes</span>
+        </div>
+      </div>
+      <p className="text-[11px] text-brand-muted text-center mt-3">Ejemplo</p>
+    </div>
   )
 }
 
