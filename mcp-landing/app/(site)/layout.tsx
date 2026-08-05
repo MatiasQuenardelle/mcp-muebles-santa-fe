@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Script from 'next/script'
 import { CLARITY_ID, GOOGLE_ADS_ID, GOOGLE_TAG_ID, SITE_URL } from '@/lib/constants'
 import AttributionTracker from '@/components/AttributionTracker'
+import ChatWidget from '@/components/ChatWidget'
 
 export const metadata: Metadata = {
   title: 'Cocinas a Medida en Santa Fe | MCP - Muebles a Medida - Presupuesto Gratis',
@@ -64,6 +65,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       ) : null}
       <AttributionTracker />
       {children}
+      <ChatWidget />
     </>
   )
 }

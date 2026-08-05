@@ -1,8 +1,12 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { useWhatsAppCTA } from '@/lib/useWhatsAppCTA'
 
 export default function StickyMobileCTA() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [chatOpen, setChatOpen] = useState(false)
+
   const { href, handleClick } = useWhatsAppCTA({
     baseMessage:
       'Hola Marcelo, quiero consultar por una cocina a medida y pedir un presupuesto por WhatsApp.',
@@ -10,8 +14,41 @@ export default function StickyMobileCTA() {
     placement: 'sticky_mobile_cta',
   })
 
+  useEffect(() => {
+    function handleChatToggle(event: Event) {
+      setChatOpen(Boolean((event as CustomEvent<{ open?: boolean }>).detail?.open))
+    }
+
+    window.addEventListener('mcp:chat-toggle', handleChatToggle)
+    return () => window.removeEventListener('mcp:chat-toggle', handleChatToggle)
+  }, [])
+
+  // Publica la altura real de la barra para que el botón del chat no se le
+  // monte encima. En desktop y con el chat abierto la barra no ocupa nada,
+  // así que la variable queda en 0 sola.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) {
+      return
+    }
+
+    const root = document.documentElement
+    const sync = () => root.style.setProperty('--sticky-cta-h', `${el.offsetHeight}px`)
+    sync()
+
+    const observer = new ResizeObserver(sync)
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--sticky-cta-h')
+    }
+  }, [])
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-brand-dark/95 backdrop-blur-md border-t border-white/10 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] animate-slide-up">
+    <div
+      ref={ref}
+      className={`${chatOpen ? 'hidden ' : ''}fixed bottom-0 left-0 right-0 z-50 md:hidden bg-brand-dark/95 backdrop-blur-md border-t border-white/10 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] animate-slide-up`}
+    >
       <a
         href={href}
         onClick={handleClick}

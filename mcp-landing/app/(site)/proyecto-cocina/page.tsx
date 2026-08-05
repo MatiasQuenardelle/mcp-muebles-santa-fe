@@ -6,7 +6,6 @@ import ProyectoGaleria from '@/components/proyecto/ProyectoGaleria'
 import PreciosReferencia from '@/components/proyecto/PreciosReferencia'
 import ProyectoFAQ from '@/components/proyecto/ProyectoFAQ'
 import ProyectoCTA from '@/components/proyecto/ProyectoCTA'
-import ChatWidget from '@/components/proyecto/ChatWidget'
 import JsonLd from '@/components/JsonLd'
 import { breadcrumbJsonLd, faqPageJsonLd } from '@/lib/structuredData'
 import { proyectoFaqs } from '@/lib/faqData'
@@ -46,7 +45,6 @@ export default function ProyectoCocina() {
         <ProyectoFAQ />
         <ProyectoCTA />
       </main>
-      <ChatWidget />
       <footer className="bg-brand-dark border-t border-white/10">
         <div className="max-w-6xl mx-auto px-5 py-10 text-center">
           <div className="text-brand-muted-dark text-sm">

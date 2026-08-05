@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useWhatsAppCTA } from '@/lib/useWhatsAppCTA'
 import { getAttribution } from '@/lib/attribution'
 import { detectPhone, postLead, trackChatbotLead } from '@/lib/lead'
@@ -26,7 +27,21 @@ const CONTEXTUAL_GREETINGS: Record<string, string> = {
 
 const MAX_USER_MESSAGES = 20
 
+// El widget vive en el layout, así que la atribución del lead tiene que salir
+// de la página donde el visitante realmente abrió el chat.
+function placementForPath(pathname: string): string {
+  if (pathname === '/proyecto-cocina') {
+    return 'proyecto_chatbot'
+  }
+  if (pathname === '/') {
+    return 'home_chatbot'
+  }
+  return `${pathname.replace(/^\//, '').replace(/[^a-zA-Z0-9]+/g, '_')}_chatbot`
+}
+
 export default function ChatWidget() {
+  const pathname = usePathname() || '/'
+  const placement = useMemo(() => placementForPath(pathname), [pathname])
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([GREETING])
   const [input, setInput] = useState('')
@@ -39,7 +54,7 @@ export default function ChatWidget() {
     baseMessage:
       'Hola Marcelo, estuve cotizando mi cocina con el asistente de la web y quiero avanzar.',
     ctaLabel: 'Seguir por WhatsApp',
-    placement: 'proyecto_chatbot',
+    placement,
   })
 
   const userMessageCount = messages.filter((m) => m.role === 'user').length
@@ -68,6 +83,12 @@ export default function ChatWidget() {
     return () => window.removeEventListener('mcp:open-chat', handleOpenChat)
   }, [])
 
+  // Avisa a los demás CTA flotantes (la barra sticky de mobile) para que se
+  // aparten mientras el chat está abierto.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('mcp:chat-toggle', { detail: { open: isOpen } }))
+  }, [isOpen])
+
   async function sendMessage() {
     const text = input.trim()
     if (!text || isLoading || limitReached) {
@@ -81,7 +102,7 @@ export default function ChatWidget() {
     setHasError(false)
 
     const attribution = getAttribution()
-    const page = window.location.pathname || '/proyecto-cocina'
+    const page = window.location.pathname || '/'
 
     // Captura de lead: si el visitante deja un teléfono en el chat, lo registramos
     // una sola vez con su origen de atribución. La transcripción ya no viaja acá:
@@ -90,7 +111,7 @@ export default function ChatWidget() {
     if (phone && !leadSentRef.current) {
       leadSentRef.current = true
       postLead({ source: 'chatbot', page, phone, message: text, attribution })
-      trackChatbotLead({ placement: 'proyecto_chatbot', attribution })
+      trackChatbotLead({ placement, attribution })
     }
 
     try {
@@ -122,7 +143,7 @@ export default function ChatWidget() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? 'Cerrar chat' : 'Abrir chat para cotizar tu cocina'}
-        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-brand-dark text-brand-gold ring-2 ring-brand-gold/50 shadow-elevated flex items-center justify-center hover:scale-105 transition-transform"
+        className="fixed bottom-[calc(1.25rem+var(--sticky-cta-h,0px))] right-5 z-50 w-14 h-14 rounded-full bg-brand-dark text-brand-gold ring-2 ring-brand-gold/50 shadow-elevated flex items-center justify-center hover:scale-105 transition-transform"
       >
         {isOpen ? (
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -141,7 +162,7 @@ export default function ChatWidget() {
 
       {/* Panel */}
       {isOpen ? (
-        <div className="fixed z-50 inset-x-3 bottom-24 sm:inset-x-auto sm:right-5 sm:w-[380px] max-h-[70vh] sm:max-h-[560px] bg-white rounded-2xl border border-brand-border shadow-elevated flex flex-col overflow-hidden">
+        <div className="fixed z-50 inset-x-3 bottom-[calc(6rem+var(--sticky-cta-h,0px))] sm:inset-x-auto sm:right-5 sm:w-[380px] max-h-[70vh] sm:max-h-[560px] bg-white rounded-2xl border border-brand-border shadow-elevated flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-brand-dark text-white px-5 py-4 flex items-center justify-between">
             <div>

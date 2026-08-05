@@ -3,3 +3,6 @@
 ad material/
 mcp-video-ad/out/
 mcp-video-ad/node_modules/
+
+# Claude Code local settings
+.claude/settings.local.json
