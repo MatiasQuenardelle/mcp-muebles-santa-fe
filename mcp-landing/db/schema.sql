@@ -26,8 +26,9 @@ create table if not exists conversations (
   card_message_count int,
   -- Lock optimista: evita que dos requests generen la misma tarjeta a la vez.
   card_claimed_at    timestamptz,
-  -- Cuándo se avisó por webhook que el lead salió caliente. Se setea una sola
-  -- vez: regenerar la tarjeta no vuelve a notificar.
+  -- Cuándo se avisó de este lead (Telegram al dejar el teléfono, o webhook al
+  -- salir la tarjeta caliente). Se setea una sola vez: hace de lock para no
+  -- mandar el mismo lead dos veces por dos caminos distintos.
   hot_notified_at    timestamptz
 );
 

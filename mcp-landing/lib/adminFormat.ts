@@ -18,6 +18,14 @@ export function formatDateTime(value: string): string {
   })
 }
 
+export function formatTime(value: string): string {
+  return new Date(value).toLocaleTimeString('es-AR', {
+    timeZone: TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function formatRelative(value: string): string {
   const diff = Date.now() - new Date(value).getTime()
   const minutes = Math.round(diff / 60_000)

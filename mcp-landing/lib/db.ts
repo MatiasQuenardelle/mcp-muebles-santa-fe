@@ -2,9 +2,9 @@
 // No importar desde componentes cliente ni desde middleware.ts (corre en Edge).
 
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
-import type { ContactCard, ConversationStatus } from '@/lib/crm'
+import type { ContactCard, ConversationFilter, ConversationStatus } from '@/lib/crm'
 
-export type { ContactCard, ConversationStatus }
+export type { ContactCard, ConversationFilter, ConversationStatus }
 
 // El sitio dueño de los datos. Fijo por ahora, pero está en cada tabla para
 // poder reusar este mismo esquema en otro cliente sin migrar nada.
@@ -199,40 +199,46 @@ export async function saveLead(input: {
 // Lectura y gestión desde el panel
 // ---------------------------------------------------------------------------
 
-export async function listConversations(search?: string): Promise<ConversationRow[]> {
+/**
+ * Lista para el panel. Búsqueda y filtro van en la misma query: el driver HTTP
+ * de Neon usa tagged templates y no deja componer el WHERE por partes, así que
+ * cada condición se activa desde su propio parámetro (sigue siendo parametrizada,
+ * no hay concatenación de strings).
+ */
+export async function listConversations(options?: {
+  search?: string
+  filter?: ConversationFilter
+}): Promise<ConversationRow[]> {
   const sql = db()
-  const term = (search ?? '').trim()
+  const term = (options?.search ?? '').trim()
   const like = `%${term}%`
+  const filter = options?.filter ?? 'todas'
 
   // Se ignoran las conversaciones de un solo mensaje sin teléfono: son rebotes.
-  const rows = term
-    ? await sql`
-        select id, started_at, last_message_at, message_count, page, attribution,
-               name, phone, went_to_whatsapp, status, notes,
-               card, card_generated_at, card_message_count
-        from conversations
-        where site_id = ${SITE_ID}
-          and (message_count > 1 or phone is not null)
-          and (
-            phone ilike ${like}
-            or name ilike ${like}
-            or card->>'nombre' ilike ${like}
-            or card->>'telefono' ilike ${like}
-            or card->>'resumen' ilike ${like}
-          )
-        order by last_message_at desc
-        limit 200
-      `
-    : await sql`
-        select id, started_at, last_message_at, message_count, page, attribution,
-               name, phone, went_to_whatsapp, status, notes,
-               card, card_generated_at, card_message_count
-        from conversations
-        where site_id = ${SITE_ID}
-          and (message_count > 1 or phone is not null)
-        order by last_message_at desc
-        limit 200
-      `
+  const rows = await sql`
+    select id, started_at, last_message_at, message_count, page, attribution,
+           name, phone, went_to_whatsapp, status, notes,
+           card, card_generated_at, card_message_count
+    from conversations
+    where site_id = ${SITE_ID}
+      and (message_count > 1 or phone is not null)
+      and (
+        ${term} = ''
+        or phone ilike ${like}
+        or name ilike ${like}
+        or card->>'nombre' ilike ${like}
+        or card->>'telefono' ilike ${like}
+        or card->>'resumen' ilike ${like}
+      )
+      and (
+        ${filter} = 'todas'
+        or (${filter} = 'pendientes' and status = 'nuevo')
+        or (${filter} = 'calientes' and card->>'temperatura' = 'caliente')
+        or (${filter} = 'con_telefono' and (phone is not null or card->>'telefono' is not null))
+      )
+    order by last_message_at desc
+    limit 200
+  `
 
   return rows as unknown as ConversationRow[]
 }
@@ -274,30 +280,62 @@ export async function updateConversation(
 }
 
 export interface DashboardStats {
+  sin_contactar: number
   hoy: number
-  semana: number
-  con_telefono: number
-  total: number
+  whatsapp_hoy: number
   ganados: number
 }
 
+// Métricas pensadas para decidir qué hacer, no para describir: lo primero que
+// tiene que ver el dueño es cuántas consultas le quedan sin contestar.
 export async function getStats(): Promise<DashboardStats> {
   const sql = db()
   const rows = (await sql`
     select
+      count(*) filter (where status = 'nuevo')::int as sin_contactar,
       count(*) filter (
         where started_at >= date_trunc('day', now() at time zone 'America/Argentina/Buenos_Aires')
               at time zone 'America/Argentina/Buenos_Aires'
       )::int as hoy,
-      count(*) filter (where started_at > now() - interval '7 days')::int as semana,
-      count(*) filter (where phone is not null or card->>'telefono' is not null)::int as con_telefono,
-      count(*)::int as total,
+      (
+        select count(*)::int from leads
+        where site_id = ${SITE_ID}
+          and source like 'whatsapp:%'
+          and created_at >= date_trunc('day', now() at time zone 'America/Argentina/Buenos_Aires')
+              at time zone 'America/Argentina/Buenos_Aires'
+      ) as whatsapp_hoy,
       count(*) filter (where status = 'ganado')::int as ganados
     from conversations
     where site_id = ${SITE_ID} and (message_count > 1 or phone is not null)
   `) as unknown as DashboardStats[]
 
-  return rows[0] ?? { hoy: 0, semana: 0, con_telefono: 0, total: 0, ganados: 0 }
+  return rows[0] ?? { sin_contactar: 0, hoy: 0, whatsapp_hoy: 0, ganados: 0 }
+}
+
+export interface WhatsAppClickRow {
+  id: number
+  created_at: string
+  page: string | null
+  source: string
+  attribution: Record<string, unknown> | null
+}
+
+/**
+ * Clics a los CTA de WhatsApp del sitio público. No pasan por el chatbot, así
+ * que no tienen conversación ni nombre: lo único que aportan es de dónde vino
+ * la persona, para poder cruzarlo por hora con el mensaje que le llega al
+ * WhatsApp del dueño.
+ */
+export async function listWhatsAppClicks(limit = 100): Promise<WhatsAppClickRow[]> {
+  const sql = db()
+  const rows = (await sql`
+    select id, created_at, page, source, attribution
+    from leads
+    where site_id = ${SITE_ID} and source like 'whatsapp:%'
+    order by created_at desc
+    limit ${limit}
+  `) as unknown as WhatsAppClickRow[]
+  return rows
 }
 
 // ---------------------------------------------------------------------------

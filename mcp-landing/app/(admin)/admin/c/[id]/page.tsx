@@ -7,6 +7,7 @@ import {
   TEMPERATURE_STYLES,
   formatDateTime,
   formatRelative,
+  formatTime,
   originLabel,
 } from '@/lib/adminFormat'
 import { requireAdminPage } from '@/lib/adminSession'
@@ -121,18 +122,28 @@ export default async function ConversationPage({ params }: { params: { id: strin
           Conversación completa ({messages.length} mensajes)
         </h2>
         <div className="space-y-2.5">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                message.role === 'user'
-                  ? 'ml-auto bg-brand-dark text-white rounded-br-sm'
-                  : 'mr-auto bg-white border border-brand-border text-brand-dark rounded-bl-sm'
-              }`}
-            >
-              {message.content}
-            </div>
-          ))}
+          {messages.map((message, index) => {
+            const isUser = message.role === 'user'
+            return (
+              <div
+                key={index}
+                className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                  isUser
+                    ? 'ml-auto bg-brand-dark text-white rounded-br-sm'
+                    : 'mr-auto bg-white border border-brand-border text-brand-dark rounded-bl-sm'
+                }`}
+              >
+                <p className="whitespace-pre-wrap">{message.content}</p>
+                <span
+                  className={`block text-[10px] tabular-nums mt-1 ${
+                    isUser ? 'text-white/50 text-right' : 'text-brand-muted'
+                  }`}
+                >
+                  {formatTime(message.created_at)}
+                </span>
+              </div>
+            )
+          })}
           {messages.length === 0 ? (
             <p className="text-sm text-brand-muted">No hay mensajes guardados.</p>
           ) : null}

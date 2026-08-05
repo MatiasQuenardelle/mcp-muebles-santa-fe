@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { isDatabaseConfigured, saveLead } from '@/lib/db'
+import { notifyPhoneLead } from '@/lib/notify'
 
 const MAX_MESSAGE = 1500
 
@@ -68,6 +69,20 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error('No se pudo guardar el lead', error)
     }
+  }
+
+  // Aviso instantáneo solo para el teléfono dejado en el chat: los clics a
+  // WhatsApp ya le llegan al dueño como mensaje real y avisarlos sería ruido.
+  // Con `await`: Vercel congela la lambda apenas responde.
+  if (record.source === 'chatbot') {
+    await notifyPhoneLead({
+      conversationId,
+      name: record.name ?? null,
+      phone: record.phone ?? null,
+      message: record.message ?? null,
+      page: record.page,
+      attribution: record.attribution,
+    })
   }
 
   const webhook = (process.env.LEAD_WEBHOOK_URL ?? '').trim()

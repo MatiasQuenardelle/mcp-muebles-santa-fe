@@ -17,6 +17,29 @@ export const CONVERSATION_STATUSES: ConversationStatus[] = [
   'perdido',
 ]
 
+// Filtros de la lista del panel. Viajan por `?f=` en la URL.
+export type ConversationFilter = 'todas' | 'pendientes' | 'calientes' | 'con_telefono'
+
+export const CONVERSATION_FILTERS: ConversationFilter[] = [
+  'todas',
+  'pendientes',
+  'calientes',
+  'con_telefono',
+]
+
+export const FILTER_LABELS: Record<ConversationFilter, string> = {
+  todas: 'Todas',
+  pendientes: 'Sin contactar',
+  calientes: 'Calientes',
+  con_telefono: 'Con teléfono',
+}
+
+export function parseFilter(value: string | undefined): ConversationFilter {
+  return CONVERSATION_FILTERS.includes(value as ConversationFilter)
+    ? (value as ConversationFilter)
+    : 'todas'
+}
+
 export type Temperature = 'caliente' | 'tibio' | 'frio'
 
 export interface ContactCard {

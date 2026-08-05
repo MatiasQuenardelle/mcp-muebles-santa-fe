@@ -2,17 +2,32 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import type { ConversationFilter } from '@/lib/crm'
 
-// Buscar por nombre o teléfono le sirve más a Marcelo que un set de filtros:
-// casi siempre viene de una llamada perdida y busca a esa persona.
-export default function SearchBox({ initialValue }: { initialValue: string }) {
+// Buscar por nombre o teléfono es lo que se usa cuando viene una llamada
+// perdida y hay que ubicar a esa persona; los chips de al lado cubren el resto.
+export default function SearchBox({
+  initialValue,
+  filter,
+}: {
+  initialValue: string
+  filter: ConversationFilter
+}) {
   const router = useRouter()
   const [value, setValue] = useState(initialValue)
 
   function submit(event: React.FormEvent) {
     event.preventDefault()
+    const params = new URLSearchParams()
     const query = value.trim()
-    router.push(query ? `/admin?q=${encodeURIComponent(query)}` : '/admin')
+    if (query) {
+      params.set('q', query)
+    }
+    if (filter !== 'todas') {
+      params.set('f', filter)
+    }
+    const search = params.toString()
+    router.push(search ? `/admin?${search}` : '/admin')
   }
 
   return (

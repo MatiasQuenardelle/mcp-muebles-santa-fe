@@ -1,5 +1,8 @@
 import Link from 'next/link'
+import AdminTabs from '@/components/admin/AdminTabs'
+import AutoRefresh from '@/components/admin/AutoRefresh'
 import CardGenerator from '@/components/admin/CardGenerator'
+import FilterChips from '@/components/admin/FilterChips'
 import LogoutButton from '@/components/admin/LogoutButton'
 import SearchBox from '@/components/admin/SearchBox'
 import {
@@ -11,6 +14,7 @@ import {
   originLabel,
 } from '@/lib/adminFormat'
 import { requireAdminPage } from '@/lib/adminSession'
+import { FILTER_LABELS, parseFilter } from '@/lib/crm'
 import { getStats, isDatabaseConfigured, listConversations } from '@/lib/db'
 
 // Siempre fresco: es un panel operativo, no puede servirse cacheado.
@@ -21,7 +25,7 @@ export const metadata = { title: 'Consultas · Panel MCP' }
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: { q?: string }
+  searchParams: { q?: string; f?: string }
 }) {
   await requireAdminPage()
 
@@ -38,11 +42,15 @@ export default async function AdminPage({
   }
 
   const search = (searchParams.q ?? '').trim()
-  const [conversations, stats] = await Promise.all([listConversations(search), getStats()])
+  const filter = parseFilter(searchParams.f)
+  const [conversations, stats] = await Promise.all([
+    listConversations({ search, filter }),
+    getStats(),
+  ])
 
   return (
     <main className="px-4 py-6 sm:px-6 max-w-3xl mx-auto">
-      <header className="flex items-start justify-between gap-3 mb-5">
+      <header className="flex items-start justify-between gap-3 mb-4">
         <div>
           <h1 className="font-serif text-2xl text-brand-dark leading-tight">Consultas</h1>
           <p className="text-sm text-brand-muted">Conversaciones del asistente de la web</p>
@@ -50,22 +58,30 @@ export default async function AdminPage({
         <LogoutButton />
       </header>
 
+      <AdminTabs />
+
+      {/* Cada métrica lleva a la lista que la explica: la idea es que se pueda
+          pasar de "tengo 3 sin contactar" a las 3 conversaciones en un toque. */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-        <Stat label="Hoy" value={stats.hoy} />
-        <Stat label="Últimos 7 días" value={stats.semana} />
-        <Stat label="Con teléfono" value={stats.con_telefono} />
+        <Stat label="Sin contactar" value={stats.sin_contactar} href="/admin?f=pendientes" />
+        <Stat label="Chats hoy" value={stats.hoy} />
+        <Stat label="Clics WhatsApp hoy" value={stats.whatsapp_hoy} href="/admin/whatsapp" />
         <Stat label="Ganados" value={stats.ganados} />
       </section>
 
-      <SearchBox initialValue={search} />
+      <SearchBox initialValue={search} filter={filter} />
+      <FilterChips active={filter} search={search} />
 
       {/* Genera las tarjetas pendientes en segundo plano al abrir el panel. */}
       <CardGenerator />
+      <AutoRefresh />
 
       {conversations.length === 0 ? (
-        search ? (
+        search || filter !== 'todas' ? (
           <p className="text-sm text-brand-muted text-center py-12">
-            No hay consultas que coincidan con la búsqueda.
+            {search
+              ? 'No hay consultas que coincidan con la búsqueda.'
+              : `No hay consultas en "${FILTER_LABELS[filter]}".`}
           </p>
         ) : (
           <EmptyState />
@@ -185,11 +201,21 @@ function EmptyState() {
   )
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-white rounded-xl border border-brand-border px-3 py-2.5">
+function Stat({ label, value, href }: { label: string; value: number; href?: string }) {
+  const className = 'block bg-white rounded-xl border border-brand-border px-3 py-2.5'
+  const content = (
+    <>
       <div className="text-xl font-semibold text-brand-dark tabular-nums">{value}</div>
       <div className="text-[11px] text-brand-muted leading-tight">{label}</div>
-    </div>
+    </>
+  )
+
+  if (!href) {
+    return <div className={className}>{content}</div>
+  }
+  return (
+    <Link href={href} className={`${className} active:bg-brand-card/60 transition-colors`}>
+      {content}
+    </Link>
   )
 }
