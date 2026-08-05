@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
+import { isDatabaseConfigured, saveLead } from '@/lib/db'
 
 const MAX_MESSAGE = 1500
-const MAX_TRANSCRIPT = 12
-const MAX_TRANSCRIPT_ITEM = 1500
+
+const CONVERSATION_COOKIE = 'mcp_cid'
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function str(value: unknown, max: number): string | undefined {
   if (typeof value !== 'string') {
@@ -10,6 +12,18 @@ function str(value: unknown, max: number): string | undefined {
   }
   const trimmed = value.trim()
   return trimmed ? trimmed.slice(0, max) : undefined
+}
+
+// La misma cookie que usa /api/chat: permite atribuir el clic a WhatsApp a la
+// conversación que lo originó, sin confiar en un id mandado por el cliente.
+function readConversationCookie(request: Request): string | null {
+  const header = request.headers.get('cookie')
+  if (!header) {
+    return null
+  }
+  const match = header.match(new RegExp(`(?:^|; )${CONVERSATION_COOKIE}=([^;]*)`))
+  const value = match ? decodeURIComponent(match[1]) : null
+  return value && UUID_RE.test(value) ? value : null
 }
 
 export async function POST(request: Request) {
@@ -25,22 +39,7 @@ export async function POST(request: Request) {
   }
 
   const input = body as Record<string, unknown>
-
-  const rawTranscript = Array.isArray(input.transcript) ? input.transcript : []
-  const transcript = rawTranscript
-    .slice(-MAX_TRANSCRIPT)
-    .map((item) => {
-      if (typeof item !== 'object' || item === null) {
-        return null
-      }
-      const { role, content } = item as { role?: unknown; content?: unknown }
-      const cleanContent = str(content, MAX_TRANSCRIPT_ITEM)
-      if (!cleanContent) {
-        return null
-      }
-      return { role: role === 'user' ? 'user' : 'assistant', content: cleanContent }
-    })
-    .filter((item): item is { role: string; content: string } => item !== null)
+  const conversationId = readConversationCookie(request)
 
   const record = {
     name: str(input.name, 120),
@@ -49,9 +48,26 @@ export async function POST(request: Request) {
     source: str(input.source, 60) ?? 'unknown',
     page: str(input.page, 200) ?? '/',
     attribution: input.attribution ?? null,
-    transcript,
+    conversationId,
     receivedAt: new Date().toISOString(),
     userAgent: request.headers.get('user-agent') ?? '',
+  }
+
+  if (isDatabaseConfigured()) {
+    try {
+      await saveLead({
+        conversationId,
+        source: record.source,
+        page: record.page,
+        name: record.name ?? null,
+        phone: record.phone ?? null,
+        message: record.message ?? null,
+        attribution: record.attribution,
+        userAgent: record.userAgent || null,
+      })
+    } catch (error) {
+      console.error('No se pudo guardar el lead', error)
+    }
   }
 
   const webhook = (process.env.LEAD_WEBHOOK_URL ?? '').trim()
@@ -66,7 +82,7 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error('Lead webhook error', error)
     }
-  } else {
+  } else if (!isDatabaseConfigured()) {
     console.log('LEAD', JSON.stringify(record))
   }
 

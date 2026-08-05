@@ -1,0 +1,17 @@
+{
+  "name": "Panel MCP Muebles",
+  "short_name": "Panel MCP",
+  "description": "Consultas del chatbot de MCP Muebles",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "background_color": "#F3F0E8",
+  "theme_color": "#1A1714",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

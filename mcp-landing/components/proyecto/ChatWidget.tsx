@@ -80,20 +80,16 @@ export default function ChatWidget() {
     setIsLoading(true)
     setHasError(false)
 
+    const attribution = getAttribution()
+    const page = window.location.pathname || '/proyecto-cocina'
+
     // Captura de lead: si el visitante deja un teléfono en el chat, lo registramos
-    // una sola vez con su origen de atribución y el hilo de la conversación.
+    // una sola vez con su origen de atribución. La transcripción ya no viaja acá:
+    // el servidor la guarda mensaje a mensaje y la enlaza por la cookie mcp_cid.
     const phone = detectPhone(text)
     if (phone && !leadSentRef.current) {
       leadSentRef.current = true
-      const attribution = getAttribution()
-      postLead({
-        source: 'chatbot',
-        page: window.location.pathname || '/proyecto-cocina',
-        phone,
-        message: text,
-        attribution,
-        transcript: nextMessages.slice(1).slice(-10),
-      })
+      postLead({ source: 'chatbot', page, phone, message: text, attribution })
       trackChatbotLead({ placement: 'proyecto_chatbot', attribution })
     }
 
@@ -102,7 +98,7 @@ export default function ChatWidget() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // El saludo inicial es fijo, no hace falta mandarlo
-        body: JSON.stringify({ messages: nextMessages.slice(1) }),
+        body: JSON.stringify({ messages: nextMessages.slice(1), page, attribution }),
       })
 
       const data = (await response.json().catch(() => ({}))) as { reply?: string }

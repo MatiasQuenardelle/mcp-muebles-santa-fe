@@ -7,7 +7,6 @@ export interface LeadPayload {
   source: string
   page: string
   attribution: Attribution | null
-  transcript?: { role: string; content: string }[]
 }
 
 // Detecta un número de teléfono plausible en el texto del usuario.

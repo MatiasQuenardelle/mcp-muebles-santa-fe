@@ -6,6 +6,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
+      // Doble candado con el `noindex` del layout (admin): el panel no se indexa.
+      disallow: ['/admin', '/api/admin'],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,
