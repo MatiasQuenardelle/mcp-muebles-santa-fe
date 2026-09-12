@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, DM_Serif_Display } from 'next/font/google'
+import { DM_Sans, DM_Serif_Display, Inter, Playfair_Display } from 'next/font/google'
 import { SITE_URL } from '@/lib/constants'
 import './globals.css'
 
@@ -21,6 +21,23 @@ const dmSerif = DM_Serif_Display({
   display: 'swap',
 })
 
+// Playfair + DM Sans son la tipografía de /cocinas; el resto del sitio sigue
+// con Inter + DM Serif Display.
+const playfair = Playfair_Display({
+  weight: ['500', '600', '700'],
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap',
+})
+
+const dmSans = DM_Sans({
+  weight: ['400', '500', '700'],
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 }
@@ -32,7 +49,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={`${inter.variable} ${dmSerif.variable} font-sans`}>{children}</body>
+      <body
+        className={`${inter.variable} ${dmSerif.variable} ${playfair.variable} ${dmSans.variable} font-sans`}
+      >{children}</body>
     </html>
   )
 }

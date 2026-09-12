@@ -19,11 +19,15 @@ const config: Config = {
           'muted-dark': '#A39E96',
           border: '#E8E4DC',
           card: '#F3F0E8',
+          ink: '#13110F',
+          sand: '#F2EEE4',
         },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         serif: ['var(--font-dm-serif)', 'Georgia', 'serif'],
+        display: ['var(--font-playfair)', 'Georgia', 'serif'],
+        body: ['var(--font-dm-sans)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'glow-green': '0 0 20px rgba(37, 211, 102, 0.3)',

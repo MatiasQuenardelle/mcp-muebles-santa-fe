@@ -45,6 +45,8 @@ export function trackChatbotLead(payload: {
   }
 
   const leadPayload = {
+    // `method` es lo que lee el panel de nubera para separar las consultas por canal.
+    method: 'chatbot',
     lead_type: 'chatbot',
     placement: payload.placement,
     lead_source: payload.attribution?.source ?? '(direct)',

@@ -6,3 +6,5 @@ mcp-video-ad/node_modules/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+.vercel

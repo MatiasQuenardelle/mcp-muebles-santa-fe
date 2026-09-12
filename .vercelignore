@@ -1,0 +1,9 @@
+# El proyecto en Vercel tiene Root Directory = mcp-landing, así que el deploy sale
+# desde la raíz del repo. Todo lo que no sea la landing no tiene por qué subir.
+ad material/
+first files/
+landing pages capturas/
+mcp-video-ad/
+tasks/
+*.md
+*.txt

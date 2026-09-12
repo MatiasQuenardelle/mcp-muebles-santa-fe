@@ -45,6 +45,8 @@ export function trackWhatsAppClick({
 
   const attribution = getAttribution()
   const leadPayload = {
+    // `method` es lo que lee el panel de nubera para separar las consultas por canal.
+    method: 'whatsapp',
     lead_type: 'whatsapp',
     placement,
     cta_label: ctaLabel,
