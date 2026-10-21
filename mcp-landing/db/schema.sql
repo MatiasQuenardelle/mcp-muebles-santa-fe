@@ -70,6 +70,42 @@ alter table conversations add column if not exists hot_notified_at timestamptz;
 alter table conversations add column if not exists last_read_at timestamptz;
 alter table conversations add column if not exists is_demo boolean not null default false;
 
+-- CRM (2026-10-21). Una fila de conversations es un contacto/oportunidad: la
+-- mayoría nace de un chat del asistente, pero también se cargan a mano los que
+-- llegan por WhatsApp directo, Instagram, teléfono o el local (source <> 'chat',
+-- message_count = 0). Los datos editados a mano pisan a los de la tarjeta IA.
+--   source: chat | whatsapp | instagram | facebook | telefono | local | referido | otro
+alter table conversations add column if not exists source text not null default 'chat';
+alter table conversations add column if not exists email text;
+alter table conversations add column if not exists zona text;
+alter table conversations add column if not exists project text;
+-- Monto presupuestado o vendido, en pesos.
+alter table conversations add column if not exists amount numeric(14, 2);
+-- Fecha (sin hora) del próximo contacto. Date y no timestamptz para que "hoy"
+-- y "vencido" no dependan de la zona horaria de quien mira.
+alter table conversations add column if not exists follow_up_on date;
+alter table conversations add column if not exists follow_up_note text;
+alter table conversations add column if not exists lost_reason text;
+alter table conversations add column if not exists status_changed_at timestamptz;
+
+-- Historial de lo que se hizo con cada contacto. Los cambios de estado se
+-- registran solos; el resto lo carga el dueño desde el panel.
+--   kind: nota | llamada | whatsapp | visita | presupuesto | estado | alta
+create table if not exists activities (
+  id              bigserial primary key,
+  conversation_id uuid        not null references conversations(id) on delete cascade,
+  kind            text        not null,
+  body            text,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists activities_conversation_idx
+  on activities (conversation_id, created_at desc);
+
+create index if not exists conversations_follow_up_idx
+  on conversations (site_id, follow_up_on)
+  where follow_up_on is not null;
+
 create index if not exists conversations_recent_idx
   on conversations (site_id, last_message_at desc);
 

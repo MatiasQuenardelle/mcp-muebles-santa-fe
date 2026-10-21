@@ -1,18 +1,32 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { postActivity } from '@/lib/adminApi'
 import { normalizePhone } from '@/lib/adminFormat'
 
 interface Props {
+  id: string
   phone: string | null
   nombre: string | null
   proyecto: string | null
 }
 
 // Barra fija al pie del panel derecho: lo único accionable del CRM es salir a
-// hablar con la persona, no hay canal saliente propio.
-export default function ConversationActions({ phone, nombre, proyecto }: Props) {
+// hablar con la persona, no hay canal saliente propio. Abrir WhatsApp o llamar
+// queda en el historial (y saca al contacto de "Sin contactar").
+export default function ConversationActions({ id, phone, nombre, proyecto }: Props) {
+  const router = useRouter()
   const [copied, setCopied] = useState(false)
+
+  function logContact(kind: 'whatsapp' | 'llamada', body: string) {
+    // Sin await: el link se abre igual y keepalive hace que el registro llegue.
+    postActivity(id, kind, body).then((failure) => {
+      if (!failure) {
+        router.refresh()
+      }
+    })
+  }
 
   async function handleCopy() {
     if (!phone) {
@@ -44,12 +58,14 @@ export default function ConversationActions({ phone, nombre, proyecto }: Props) 
         href={`https://wa.me/${waNumber}?text=${waMessage}`}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => logContact('whatsapp', 'Se abrió WhatsApp desde el panel.')}
         className="flex-1 text-center rounded-xl bg-brand-green text-white font-semibold py-3 text-sm"
       >
         WhatsApp
       </a>
       <a
         href={`tel:${waNumber}`}
+        onClick={() => logContact('llamada', 'Se llamó desde el panel.')}
         className="rounded-xl border border-brand-border bg-white px-4 py-3 text-sm font-semibold text-brand-dark"
       >
         Llamar

@@ -16,7 +16,7 @@ export default function LoginPage({
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="font-serif text-2xl text-brand-dark">MCP Muebles</div>
-          <p className="text-sm text-brand-muted mt-1">Panel de consultas del asistente</p>
+          <p className="text-sm text-brand-muted mt-1">CRM de contactos y consultas</p>
         </div>
         <LoginForm next={target} />
       </div>

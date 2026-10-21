@@ -1,13 +1,17 @@
 import Link from 'next/link'
 import ContactAvatar from '@/components/admin/ContactAvatar'
 import {
+  FOLLOW_UP_STYLES,
   STATUS_DOTS,
   STATUS_LABELS,
   TEMPERATURE_LABELS,
   TEMPERATURE_STYLES,
+  contactView,
+  followUpLabel,
+  formatMoneyShort,
   formatRelative,
 } from '@/lib/adminFormat'
-import type { ConversationFilter } from '@/lib/crm'
+import { CLOSED_STATUSES, SOURCE_LABELS, type ConversationFilter } from '@/lib/crm'
 import type { ConversationRow } from '@/lib/db'
 
 // La selección viaja en `?c=`, no en la ruta: así la búsqueda y el filtro que
@@ -46,10 +50,17 @@ export default function ConversationList({
     <ul>
       {conversations.map((conversation) => {
         const card = conversation.card
-        const nombre = card?.nombre ?? conversation.name
-        const telefono = card?.telefono ?? conversation.phone
+        const { nombre, telefono, proyecto } = contactView(conversation)
         const temperatura = card?.temperatura
         const isActive = conversation.id === activeId
+        const isManual = conversation.source !== 'chat'
+        const followUp =
+          conversation.follow_up_on && !CLOSED_STATUSES.includes(conversation.status)
+            ? followUpLabel(conversation.follow_up_on)
+            : null
+        const summary = isManual
+          ? proyecto ?? `Cargado a mano · ${SOURCE_LABELS[conversation.source]}`
+          : card?.resumen ?? 'Resumen en preparación…'
 
         return (
           <li key={conversation.id}>
@@ -84,7 +95,7 @@ export default function ConversationList({
 
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <p className="text-xs text-brand-muted truncate flex-1">
-                    {card?.resumen ?? 'Resumen en preparación…'}
+                    {summary}
                   </p>
                   {conversation.unread ? (
                     <span
@@ -94,7 +105,7 @@ export default function ConversationList({
                   ) : null}
                 </div>
 
-                <div className="flex items-center gap-1.5 mt-1.5">
+                <div className="flex items-center flex-wrap gap-x-1.5 gap-y-1 mt-1.5">
                   {conversation.is_demo ? (
                     <span className="text-[10px] font-bold px-1.5 rounded-full bg-brand-gold/20 text-brand-dark border border-brand-gold/60">
                       EJEMPLO
@@ -115,6 +126,23 @@ export default function ConversationList({
                       }`}
                     >
                       {TEMPERATURE_LABELS[temperatura] ?? temperatura}
+                    </span>
+                  ) : null}
+                  {isManual ? (
+                    <span className="text-[10px] font-semibold text-brand-muted border border-brand-border rounded-full px-1.5">
+                      {SOURCE_LABELS[conversation.source]}
+                    </span>
+                  ) : null}
+                  {conversation.amount ? (
+                    <span className="text-[10px] font-semibold text-brand-dark tabular-nums">
+                      {formatMoneyShort(conversation.amount)}
+                    </span>
+                  ) : null}
+                  {followUp ? (
+                    <span
+                      className={`text-[10px] font-semibold px-1.5 rounded-full border ${FOLLOW_UP_STYLES[followUp.tone]}`}
+                    >
+                      ⏰ {followUp.label}
                     </span>
                   ) : null}
                   {conversation.went_to_whatsapp ? (

@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const TABS = [
-  { href: '/admin', label: 'Chats' },
-  { href: '/admin/whatsapp', label: 'WhatsApp' },
+  { href: '/admin/inicio', label: 'Inicio' },
+  { href: '/admin', label: 'Contactos' },
+  { href: '/admin/embudo', label: 'Embudo' },
+  { href: '/admin/whatsapp', label: 'Clics WA' },
 ]
 
 export default function AdminTabs() {
@@ -19,7 +21,7 @@ export default function AdminTabs() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`flex-1 text-center text-sm font-semibold py-2 rounded-lg transition-colors ${
+            className={`flex-1 text-center text-xs sm:text-sm font-semibold py-2 rounded-lg whitespace-nowrap transition-colors ${
               isActive ? 'bg-brand-dark text-brand-gold' : 'text-brand-muted'
             }`}
           >

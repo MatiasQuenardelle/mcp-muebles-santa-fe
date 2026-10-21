@@ -4,6 +4,8 @@ const config: Config = {
   content: [
     './app/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
+    // lib/adminFormat.ts define las clases de color de estados y temperaturas.
+    './lib/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {

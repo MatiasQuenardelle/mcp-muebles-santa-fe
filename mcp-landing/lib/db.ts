@@ -2,7 +2,15 @@
 // No importar desde componentes cliente ni desde middleware.ts (corre en Edge).
 
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
-import type { ContactCard, ConversationFilter, ConversationStatus } from '@/lib/crm'
+import {
+  CLOSED_STATUSES,
+  CONVERSATION_STATUSES,
+  type ActivityKind,
+  type ContactCard,
+  type ConversationFilter,
+  type ConversationStatus,
+  type LeadSource,
+} from '@/lib/crm'
 
 export type { ContactCard, ConversationFilter, ConversationStatus }
 
@@ -34,6 +42,23 @@ export interface ConversationRow {
   // la conversación en el panel.
   unread: boolean
   is_demo: boolean
+  source: LeadSource
+  email: string | null
+  zona: string | null
+  project: string | null
+  amount: number | null
+  // 'YYYY-MM-DD': se lee como texto para que el driver no lo pase a Date en UTC.
+  follow_up_on: string | null
+  follow_up_note: string | null
+  lost_reason: string | null
+  status_changed_at: string | null
+}
+
+export interface ActivityRow {
+  id: number
+  kind: ActivityKind
+  body: string | null
+  created_at: string
 }
 
 export interface MessageRow {
@@ -218,11 +243,31 @@ export async function saveLead(input: {
 // Lectura y gestión desde el panel
 // ---------------------------------------------------------------------------
 
+// Columnas de ConversationRow. Es un string constante (no entra nada del usuario)
+// para no repetir la lista en cada lectura; las lecturas que lo usan van por
+// sql.query con placeholders $n.
+const CONVERSATION_COLUMNS = `
+  id, started_at, last_message_at, message_count, page, attribution,
+  name, phone, went_to_whatsapp, status, notes,
+  card, card_generated_at, card_message_count, is_demo,
+  (last_message_at > coalesce(last_read_at, 'epoch'::timestamptz)) as unread,
+  source, email, zona, project, amount::float8 as amount,
+  follow_up_on::text as follow_up_on, follow_up_note, lost_reason, status_changed_at
+`
+
+// Se ignoran los chats de un solo mensaje sin teléfono: son rebotes. Los cargados
+// a mano no tienen mensajes y se muestran siempre.
+const VISIBLE = `(message_count > 1 or phone is not null or source <> 'chat')`
+
+// "Hoy" en Buenos Aires, como date. follow_up_on se compara contra esto.
+const TODAY = `(now() at time zone 'America/Argentina/Buenos_Aires')::date`
+
+const CLOSED_LIST = CLOSED_STATUSES.map((status) => `'${status}'`).join(', ')
+
 /**
- * Lista para el panel. Búsqueda y filtro van en la misma query: el driver HTTP
- * de Neon usa tagged templates y no deja componer el WHERE por partes, así que
- * cada condición se activa desde su propio parámetro (sigue siendo parametrizada,
- * no hay concatenación de strings).
+ * Lista del inbox. Búsqueda y filtro van en la misma query: cada condición se
+ * activa desde su propio parámetro (sigue siendo parametrizada, no hay
+ * concatenación de valores del usuario).
  */
 export async function listConversations(options?: {
   search?: string
@@ -230,51 +275,63 @@ export async function listConversations(options?: {
 }): Promise<ConversationRow[]> {
   const sql = db()
   const term = (options?.search ?? '').trim()
-  const like = `%${term}%`
   const filter = options?.filter ?? 'todas'
 
-  // Se ignoran las conversaciones de un solo mensaje sin teléfono: son rebotes.
-  const rows = await sql`
-    select id, started_at, last_message_at, message_count, page, attribution,
-           name, phone, went_to_whatsapp, status, notes,
-           card, card_generated_at, card_message_count, is_demo,
-           (last_message_at > coalesce(last_read_at, 'epoch'::timestamptz)) as unread
+  const rows = await sql.query(
+    `
+    select ${CONVERSATION_COLUMNS}
     from conversations
-    where site_id = ${SITE_ID}
-      and (message_count > 1 or phone is not null)
+    where site_id = $1
+      and ${VISIBLE}
       and (
-        ${term} = ''
-        or phone ilike ${like}
-        or name ilike ${like}
-        or card->>'nombre' ilike ${like}
-        or card->>'telefono' ilike ${like}
-        or card->>'resumen' ilike ${like}
+        $2 = ''
+        or phone ilike $3 or name ilike $3 or email ilike $3
+        or project ilike $3 or zona ilike $3
+        or card->>'nombre' ilike $3
+        or card->>'telefono' ilike $3
+        or card->>'resumen' ilike $3
       )
       and (
-        ${filter} = 'todas'
-        or (${filter} = 'no_leidas' and last_message_at > coalesce(last_read_at, 'epoch'::timestamptz))
-        or (${filter} = 'pendientes' and status = 'nuevo')
-        or (${filter} = 'calientes' and card->>'temperatura' = 'caliente')
-        or (${filter} = 'con_telefono' and (phone is not null or card->>'telefono' is not null))
+        $4 = 'todas'
+        or ($4 = 'no_leidas' and last_message_at > coalesce(last_read_at, 'epoch'::timestamptz))
+        or ($4 = 'pendientes' and status = 'nuevo')
+        or ($4 = 'seguimiento' and follow_up_on <= ${TODAY} and status not in (${CLOSED_LIST}))
+        or ($4 = 'calientes' and card->>'temperatura' = 'caliente')
+        or ($4 = 'con_telefono' and (phone is not null or card->>'telefono' is not null))
       )
     order by last_message_at desc
-    limit 200
-  `
+    limit 300
+    `,
+    [SITE_ID, term, `%${term}%`, filter]
+  )
 
   return rows as unknown as ConversationRow[]
 }
 
 export async function getConversation(id: string): Promise<ConversationRow | null> {
   const sql = db()
-  const rows = (await sql`
-    select id, started_at, last_message_at, message_count, page, attribution,
-           name, phone, went_to_whatsapp, status, notes,
-           card, card_generated_at, card_message_count, is_demo,
-           (last_message_at > coalesce(last_read_at, 'epoch'::timestamptz)) as unread
-    from conversations
-    where id = ${id}::uuid and site_id = ${SITE_ID}
-  `) as unknown as ConversationRow[]
+  const rows = (await sql.query(
+    `select ${CONVERSATION_COLUMNS} from conversations where id = $1::uuid and site_id = $2`,
+    [id, SITE_ID]
+  )) as unknown as ConversationRow[]
   return rows[0] ?? null
+}
+
+// Todo lo visible, para el embudo, las métricas y la exportación. Con el volumen
+// de un negocio local (decenas de consultas por mes) entra entero en memoria.
+export async function listAllConversations(): Promise<ConversationRow[]> {
+  const sql = db()
+  const rows = await sql.query(
+    `
+    select ${CONVERSATION_COLUMNS}
+    from conversations
+    where site_id = $1 and ${VISIBLE}
+    order by last_message_at desc
+    limit 2000
+    `,
+    [SITE_ID]
+  )
+  return rows as unknown as ConversationRow[]
 }
 
 // Se llama al abrir la conversación en el panel. Es idempotente: siempre pisa
@@ -295,50 +352,230 @@ export async function getMessages(conversationId: string): Promise<MessageRow[]>
   return rows
 }
 
+// Campos que se pueden editar desde la ficha. El nombre de la key es el de la
+// columna: updateConversation arma el SET a partir de esta lista blanca.
+export interface EditableFields {
+  name?: string | null
+  phone?: string | null
+  email?: string | null
+  zona?: string | null
+  project?: string | null
+  source?: LeadSource
+  amount?: number | null
+  follow_up_on?: string | null
+  follow_up_note?: string | null
+  lost_reason?: string | null
+  notes?: string
+}
+
+const EDITABLE_COLUMNS: Array<keyof EditableFields> = [
+  'name',
+  'phone',
+  'email',
+  'zona',
+  'project',
+  'source',
+  'amount',
+  'follow_up_on',
+  'follow_up_note',
+  'lost_reason',
+  'notes',
+]
+
 export async function updateConversation(
   id: string,
-  fields: { status?: ConversationStatus; notes?: string }
+  fields: EditableFields & { status?: ConversationStatus }
 ): Promise<void> {
   const sql = db()
+
   if (fields.status !== undefined) {
-    await sql`update conversations set status = ${fields.status} where id = ${id}::uuid`
+    await changeStatus(id, fields.status)
   }
-  if (fields.notes !== undefined) {
-    await sql`update conversations set notes = ${fields.notes} where id = ${id}::uuid`
+
+  // Los nombres de columna salen de la lista blanca, nunca del request; los
+  // valores van como parámetros.
+  const columns = EDITABLE_COLUMNS.filter((column) => fields[column] !== undefined)
+  if (columns.length === 0) {
+    return
   }
+  const assignments = columns.map((column, index) => `${column} = $${index + 2}`)
+  await sql.query(
+    `update conversations set ${assignments.join(', ')} where id = $1::uuid and site_id = '${SITE_ID}'`,
+    [id, ...columns.map((column) => fields[column])]
+  )
+}
+
+/**
+ * Cambia el estado y lo deja en el historial. El CTE lee el estado anterior
+ * antes del UPDATE, así el registro dice de dónde a dónde pasó. Si el estado
+ * no cambia, no se escribe nada.
+ */
+export async function changeStatus(id: string, status: ConversationStatus): Promise<void> {
+  const sql = db()
+  const rows = (await sql`
+    with previous as (
+      select status from conversations where id = ${id}::uuid
+    )
+    update conversations c
+    set status = ${status}, status_changed_at = now()
+    from previous
+    where c.id = ${id}::uuid and previous.status <> ${status}
+    returning previous.status as previous
+  `) as Array<{ previous: string }>
+
+  if (rows.length > 0) {
+    await addActivity(id, 'estado', `${rows[0].previous} → ${status}`)
+  }
+}
+
+// Registrar un contacto con la persona implica que ya no está "sin contactar";
+// una visita o un presupuesto la empujan a ese paso del embudo. Solo se avanza,
+// nunca se retrocede, y un contacto cerrado no se toca.
+const STATUS_FOR_ACTIVITY: Partial<Record<ActivityKind, ConversationStatus>> = {
+  llamada: 'contactado',
+  whatsapp: 'contactado',
+  visita: 'visita',
+  presupuesto: 'presupuestado',
+}
+
+export async function addActivity(
+  conversationId: string,
+  kind: ActivityKind,
+  body: string | null
+): Promise<void> {
+  const sql = db()
+  await sql`
+    insert into activities (conversation_id, kind, body)
+    values (${conversationId}::uuid, ${kind}, ${body})
+  `
+
+  const target = STATUS_FOR_ACTIVITY[kind]
+  if (!target) {
+    return
+  }
+  const current = await getConversation(conversationId)
+  if (
+    current &&
+    !CLOSED_STATUSES.includes(current.status) &&
+    CONVERSATION_STATUSES.indexOf(current.status) < CONVERSATION_STATUSES.indexOf(target)
+  ) {
+    await changeStatus(conversationId, target)
+  }
+}
+
+export async function listActivities(conversationId: string): Promise<ActivityRow[]> {
+  const sql = db()
+  const rows = (await sql`
+    select id::int as id, kind, body, created_at
+    from activities
+    where conversation_id = ${conversationId}::uuid
+    order by created_at desc, id desc
+    limit 200
+  `) as unknown as ActivityRow[]
+  return rows
+}
+
+export async function deleteActivity(conversationId: string, activityId: number): Promise<void> {
+  const sql = db()
+  await sql`
+    delete from activities
+    where id = ${activityId} and conversation_id = ${conversationId}::uuid
+  `
+}
+
+/** Alta manual de un contacto que no pasó por el chat. Devuelve el id nuevo. */
+export async function createManualLead(input: {
+  source: LeadSource
+  name: string
+  phone: string | null
+  email: string | null
+  zona: string | null
+  project: string | null
+  amount: number | null
+  status: ConversationStatus
+  follow_up_on: string | null
+  note: string | null
+}): Promise<string> {
+  const sql = db()
+  const id = crypto.randomUUID()
+  // last_read_at = now(): lo cargó el mismo que lo va a mirar, no es "no leído".
+  await sql.transaction([
+    sql`
+      insert into conversations (
+        id, site_id, source, name, phone, email, zona, project, amount, status,
+        follow_up_on, message_count, last_read_at, status_changed_at
+      )
+      values (
+        ${id}::uuid, ${SITE_ID}, ${input.source}, ${input.name}, ${input.phone},
+        ${input.email}, ${input.zona}, ${input.project}, ${input.amount}, ${input.status},
+        ${input.follow_up_on}::date, 0, now(), now()
+      )
+    `,
+    sql`
+      insert into activities (conversation_id, kind, body)
+      values (${id}::uuid, 'alta', ${input.note})
+    `,
+  ])
+  return id
+}
+
+// Mensajes, historial y tarjeta se van con la fila por el `on delete cascade`;
+// los clics a WhatsApp quedan, desvinculados (`on delete set null`).
+export async function deleteConversation(id: string): Promise<void> {
+  const sql = db()
+  await sql`delete from conversations where id = ${id}::uuid and site_id = ${SITE_ID}`
 }
 
 export interface DashboardStats {
   sin_contactar: number
+  seguimiento_hoy: number
   hoy: number
   whatsapp_hoy: number
-  ganados: number
 }
 
 // Métricas pensadas para decidir qué hacer, no para describir: lo primero que
 // tiene que ver el dueño es cuántas consultas le quedan sin contestar.
 export async function getStats(): Promise<DashboardStats> {
   const sql = db()
-  const rows = (await sql`
+  const rows = (await sql.query(
+    `
     select
       count(*) filter (where status = 'nuevo')::int as sin_contactar,
+      count(*) filter (
+        where follow_up_on <= ${TODAY} and status not in (${CLOSED_LIST})
+      )::int as seguimiento_hoy,
       count(*) filter (
         where started_at >= date_trunc('day', now() at time zone 'America/Argentina/Buenos_Aires')
               at time zone 'America/Argentina/Buenos_Aires'
       )::int as hoy,
       (
         select count(*)::int from leads
-        where site_id = ${SITE_ID}
+        where site_id = $1
           and source like 'whatsapp:%'
           and created_at >= date_trunc('day', now() at time zone 'America/Argentina/Buenos_Aires')
               at time zone 'America/Argentina/Buenos_Aires'
-      ) as whatsapp_hoy,
-      count(*) filter (where status = 'ganado')::int as ganados
+      ) as whatsapp_hoy
     from conversations
-    where site_id = ${SITE_ID} and (message_count > 1 or phone is not null)
-  `) as unknown as DashboardStats[]
+    where site_id = $1 and ${VISIBLE}
+    `,
+    [SITE_ID]
+  )) as unknown as DashboardStats[]
 
-  return rows[0] ?? { sin_contactar: 0, hoy: 0, whatsapp_hoy: 0, ganados: 0 }
+  return rows[0] ?? { sin_contactar: 0, seguimiento_hoy: 0, hoy: 0, whatsapp_hoy: 0 }
+}
+
+// Clics a WhatsApp desde una fecha, para las métricas del período.
+export async function countWhatsAppClicksSince(since: Date | null): Promise<number> {
+  const sql = db()
+  const rows = (await sql`
+    select count(*)::int as total
+    from leads
+    where site_id = ${SITE_ID}
+      and source like 'whatsapp:%'
+      and (${since ? since.toISOString() : null}::timestamptz is null
+           or created_at >= ${since ? since.toISOString() : null}::timestamptz)
+  `) as Array<{ total: number }>
+  return rows[0]?.total ?? 0
 }
 
 export interface WhatsAppClickRow {

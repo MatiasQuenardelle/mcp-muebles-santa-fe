@@ -14,7 +14,7 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleClick}
-      className="text-xs text-brand-muted underline underline-offset-2 whitespace-nowrap flex-shrink-0 mt-1"
+      className="text-xs text-brand-muted underline underline-offset-2 whitespace-nowrap flex-shrink-0"
     >
       Salir
     </button>

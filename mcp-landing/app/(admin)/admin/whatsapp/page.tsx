@@ -1,5 +1,4 @@
-import AdminTabs from '@/components/admin/AdminTabs'
-import LogoutButton from '@/components/admin/LogoutButton'
+import AdminHeader from '@/components/admin/AdminHeader'
 import { formatDateTime, formatRelative, originLabel } from '@/lib/adminFormat'
 import { requireAdminPage } from '@/lib/adminSession'
 import { isDatabaseConfigured, listWhatsAppClicks } from '@/lib/db'
@@ -15,17 +14,10 @@ export default async function WhatsAppPage() {
 
   return (
     <main className="px-4 py-6 sm:px-6 max-w-3xl mx-auto">
-      <header className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <h1 className="font-serif text-2xl text-brand-dark leading-tight">Clics a WhatsApp</h1>
-          <p className="text-sm text-brand-muted">
-            Quién tocó un botón de WhatsApp en la web y de dónde venía
-          </p>
-        </div>
-        <LogoutButton />
-      </header>
-
-      <AdminTabs />
+      <AdminHeader
+        title="Clics a WhatsApp"
+        subtitle="Quién tocó un botón de WhatsApp en la web y de dónde venía"
+      />
 
       {clicks.length === 0 ? (
         <p className="text-sm text-brand-muted text-center py-12">
@@ -35,7 +27,8 @@ export default async function WhatsAppPage() {
         <>
           <p className="text-xs text-brand-muted mb-3">
             Estas personas te escribieron directo por WhatsApp, sin pasar por el chat de la web. No
-            queda su número acá: cruzá la hora con el mensaje que te llegó para saber de dónde vino.
+            queda su número acá: cruzá la hora con el mensaje que te llegó para saber de dónde vino, y
+            cargalo con <strong>+ Nuevo</strong> (origen WhatsApp) para seguirlo.
           </p>
           <ul className="space-y-2">
             {clicks.map((click) => (

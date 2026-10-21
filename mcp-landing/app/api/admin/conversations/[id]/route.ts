@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
+import { InputError, parseEditableFields } from '@/lib/adminInput'
 import { requireAdmin } from '@/lib/auth'
 import { generateCard } from '@/lib/card'
-import { CONVERSATION_STATUSES, type ConversationStatus } from '@/lib/crm'
-import { getMessages, markConversationRead, saveCard, updateConversation } from '@/lib/db'
+import { isConversationStatus, type ConversationStatus } from '@/lib/crm'
+import {
+  deleteConversation,
+  getMessages,
+  markConversationRead,
+  saveCard,
+  updateConversation,
+} from '@/lib/db'
 import { notifyHotLead } from '@/lib/notify'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -23,24 +30,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const input = body as Record<string, unknown>
-  const fields: { status?: ConversationStatus; notes?: string } = {}
-
-  if (input.status !== undefined) {
-    const status = input.status
-    if (
-      typeof status !== 'string' ||
-      !CONVERSATION_STATUSES.includes(status as ConversationStatus)
-    ) {
-      return NextResponse.json({ error: 'Estado inválido.' }, { status: 400 })
+  let fields: ReturnType<typeof parseEditableFields> & { status?: ConversationStatus }
+  try {
+    fields = parseEditableFields(input)
+  } catch (error) {
+    if (error instanceof InputError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
     }
-    fields.status = status as ConversationStatus
+    throw error
   }
 
-  if (input.notes !== undefined) {
-    if (typeof input.notes !== 'string') {
-      return NextResponse.json({ error: 'Notas inválidas.' }, { status: 400 })
+  if (input.status !== undefined) {
+    if (!isConversationStatus(input.status)) {
+      return NextResponse.json({ error: 'Estado inválido.' }, { status: 400 })
     }
-    fields.notes = input.notes.slice(0, 4000)
+    fields.status = input.status
   }
 
   try {
@@ -69,5 +73,22 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ error: 'Error al guardar.' }, { status: 500 })
   }
 
+  return NextResponse.json({ ok: true })
+}
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  if (!(await requireAdmin(request))) {
+    return NextResponse.json({ error: 'No autorizado.' }, { status: 401 })
+  }
+  if (!UUID_RE.test(params.id)) {
+    return NextResponse.json({ error: 'Id inválido.' }, { status: 400 })
+  }
+
+  try {
+    await deleteConversation(params.id)
+  } catch (error) {
+    console.error('No se pudo borrar la conversación', error)
+    return NextResponse.json({ error: 'Error al borrar.' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }

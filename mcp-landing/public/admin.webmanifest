@@ -1,7 +1,7 @@
 {
   "name": "Panel MCP Muebles",
   "short_name": "Panel MCP",
-  "description": "Consultas del chatbot de MCP Muebles",
+  "description": "CRM de contactos de MCP Muebles",
   "start_url": "/admin",
   "scope": "/admin",
   "display": "standalone",
