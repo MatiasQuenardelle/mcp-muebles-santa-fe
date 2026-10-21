@@ -1,4 +1,3 @@
-import WhatsAppButton from '../WhatsAppButton'
 import ChatCTAButton from './ChatCTAButton'
 
 const lineas = [
@@ -142,34 +141,6 @@ export default function PreciosReferencia() {
               * Precios en pesos argentinos &middot; Medidas especiales y trabajos en L a
               consultar &middot; Financiaci&oacute;n disponible
             </p>
-          </div>
-        </div>
-
-        {/* Presupuesto detallado */}
-        <div className="bg-white border border-brand-border rounded-2xl p-8 md:p-10 md:flex md:items-center md:justify-between md:gap-10">
-          <div className="mb-6 md:mb-0">
-            <h3 className="font-bold text-xl mb-2">
-              &iquest;Quer&eacute;s un presupuesto detallado con visita?
-            </h3>
-            <p className="text-sm text-brand-muted leading-relaxed max-w-xl">
-              El estudio previo incluye mediciones precisas, asesoramiento, dise&ntilde;o y
-              presupuesto itemizado por escrito. Cuesta{' '}
-              <span className="font-semibold text-brand-dark">$40.000</span> y{' '}
-              <span className="font-semibold text-brand-dark">
-                se descuenta del total si avanz&aacute;s con el proyecto
-              </span>
-              . Si no avanz&aacute;s, te qued&aacute;s con medidas exactas y un presupuesto
-              profesional para comparar.
-            </p>
-          </div>
-          <div className="flex-shrink-0">
-            <WhatsAppButton
-              text="Coordinar visita"
-              size="small"
-              fullWidth={false}
-              placement="proyecto_estudio_previo"
-              message="Hola Marcelo, quiero coordinar una visita para el presupuesto detallado ($40.000 descontables del total)."
-            />
           </div>
         </div>
       </div>

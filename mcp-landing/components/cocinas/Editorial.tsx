@@ -52,8 +52,8 @@ export default function Editorial() {
               página es la misma que usamos por WhatsApp, y la calculadora hace la cuenta que
               haríamos nosotros. Lo que sí cambia es el número final, que sale del
               relevamiento: medidas reales, terminaciones elegidas y si hay algún trabajo en L
-              o alguna medida especial. Si querés ese número con firma, el estudio previo
-              cuesta $40.000 y se te descuenta del total si avanzás.
+              o alguna medida especial. Mandanos las medidas por WhatsApp y Marcelo te
+              confirma ese número.
             </p>
 
             <p className="border-l-2 border-brand-gold pl-5 text-brand-dark/85">

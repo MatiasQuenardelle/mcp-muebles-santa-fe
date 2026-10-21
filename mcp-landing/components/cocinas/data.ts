@@ -5,29 +5,39 @@
 // REVISAR: confirmar con Marcelo la vigencia antes de publicar.
 export const PRECIOS_ACTUALIZADOS = 'agosto 2026'
 
-export const MEDIDAS = ['1.20', '1.40', '1.60', '1.80', '2.00'] as const
-export type Medida = (typeof MEDIDAS)[number]
+// Largos de la lista oficial, en cm. La calculadora cotiza cada 10 cm entre
+// LARGO_MIN y LARGO_MAX interpolando sobre estos puntos.
+const LARGOS_LISTA = [120, 140, 160, 180, 200]
+export const LARGO_MIN = 60
+export const LARGO_MAX = 400
+export const LARGO_PASO = 10
 
 export type LineaId = 'economica' | 'estandar' | 'premium'
 export type ModuloId = 'bajoMesada' | 'alacena' | 'mesada'
 
-type Tabla = Record<ModuloId, readonly number[]>
+// Bajo mesada: precio por metro lineal, el mismo que publica /proyecto-cocina
+// y usa el chatbot (lib/chatbot.ts). Si cambia, cambiarlo en los tres lugares.
+export const PRECIO_ML_BAJO_MESADA: Record<LineaId, number> = {
+  economica: 310000,
+  estandar: 360000,
+  premium: 440000,
+}
 
-// Económica y Estándar comparten la misma tabla: la diferencia está en la
-// colocación (la Económica no la incluye y baja $50.000 sobre el total).
+// Alacena y mesada salen de la lista oficial. Económica y Estándar comparten
+// tabla: la Económica solo se diferencia en el bajo mesada.
+type Tabla = Record<'alacena' | 'mesada', readonly number[]>
+
 const TABLA_BASE: Tabla = {
-  bajoMesada: [344769, 391480, 434854, 479341, 523827],
   alacena: [272479, 313629, 354779, 395929, 435966],
   mesada: [344769, 391480, 434854, 479341, 523827],
 }
 
 const TABLA_PREMIUM: Tabla = {
-  bajoMesada: [489350, 543846, 593893, 646164, 697324],
   alacena: [405938, 453761, 500472, 548294, 595005],
   mesada: [489350, 543846, 593893, 646164, 697324],
 }
 
-export const DESCUENTO_ECONOMICA = 50000
+const DIFERENCIA_ECONOMICA_ML = PRECIO_ML_BAJO_MESADA.estandar - PRECIO_ML_BAJO_MESADA.economica
 
 export const MODULOS: {
   id: ModuloId
@@ -73,7 +83,7 @@ export const LINEAS: {
       'Aglomerado con 1 cajón incluido',
       'Fabricación a medida de tu espacio',
       'Entrega a domicilio en Santa Fe',
-      `$${DESCUENTO_ECONOMICA.toLocaleString('es-AR')} menos sobre la línea base`,
+      `$${DIFERENCIA_ECONOMICA_ML.toLocaleString('es-AR')} menos por metro de bajo mesada`,
     ],
   },
   {
@@ -81,7 +91,7 @@ export const LINEAS: {
     nombre: 'Estándar',
     claim: 'La más pedida',
     descripcion:
-      'El mismo precio de la línea económica, con la opción de sumar colocación profesional y el asesoramiento de diseño incluido.',
+      'Los mismos módulos que la Económica, con la opción de sumar colocación profesional y el asesoramiento de diseño incluido.',
     material: 'Aglomerado, 1 cajón incluido',
     colocacion: 'Colocación a convenir',
     incluye: [
@@ -111,14 +121,29 @@ export const LINEAS: {
   },
 ]
 
-export function precioModulo(linea: LineaId, modulo: ModuloId, medidaIndex: number) {
-  const tabla = linea === 'premium' ? TABLA_PREMIUM : TABLA_BASE
-  return tabla[modulo][medidaIndex] ?? 0
+/** Precio de un módulo de `largo` cm. El bajo mesada va por metro lineal. Para
+ * el resto, entre dos medidas de lista interpola en línea recta; fuera de la
+ * lista escala con el precio por metro del extremo más cercano (REVISAR con
+ * Marcelo: debajo de 1.20 m y arriba de 2.00 m). */
+export function precioModulo(linea: LineaId, modulo: ModuloId, largo: number) {
+  if (modulo === 'bajoMesada') return Math.round((PRECIO_ML_BAJO_MESADA[linea] * largo) / 100)
+
+  const precios = (linea === 'premium' ? TABLA_PREMIUM : TABLA_BASE)[modulo]
+  const ultimo = LARGOS_LISTA.length - 1
+
+  if (largo <= LARGOS_LISTA[0]) return Math.round((precios[0] * largo) / LARGOS_LISTA[0])
+  if (largo >= LARGOS_LISTA[ultimo]) {
+    return Math.round((precios[ultimo] * largo) / LARGOS_LISTA[ultimo])
+  }
+
+  const i = LARGOS_LISTA.findIndex((l) => l >= largo)
+  const [desde, hasta] = [LARGOS_LISTA[i - 1], LARGOS_LISTA[i]]
+  const avance = (largo - desde) / (hasta - desde)
+  return Math.round(precios[i - 1] + (precios[i] - precios[i - 1]) * avance)
 }
 
 export function precioDesde(linea: LineaId) {
-  const bruto = precioModulo(linea, 'bajoMesada', 0)
-  return linea === 'economica' ? bruto - DESCUENTO_ECONOMICA : bruto
+  return precioModulo(linea, 'bajoMesada', LARGOS_LISTA[0])
 }
 
 export const PROCESO = [
@@ -256,8 +281,8 @@ export const OPINIONES = [
 
 export const PREGUNTAS = [
   {
-    q: '¿Por qué la línea Económica y la Estándar tienen el mismo precio?',
-    a: 'Porque son los mismos módulos y el mismo material. La diferencia está en el servicio: en la Económica te entregamos los muebles en tu casa y los colocás vos, y por eso descontamos $50.000. En la Estándar sumás colocación profesional a convenir y el asesoramiento de diseño.',
+    q: '¿Qué diferencia hay entre la línea Económica y la Estándar?',
+    a: 'Son los mismos módulos y el mismo material. La diferencia está en el servicio: en la Económica te entregamos los muebles en tu casa y los colocás vos, y por eso el bajo mesada sale $50.000 menos por metro lineal. En la Estándar sumás colocación profesional a convenir y el asesoramiento de diseño.',
   },
   {
     q: '¿Cuánto tarda?',
@@ -281,7 +306,7 @@ export const PREGUNTAS = [
   },
   {
     q: '¿La mesada está incluida?',
-    a: 'La mesada es un módulo aparte que sumás en la calculadora si la necesitás, porque no todos la cambian. Se cotiza por medida igual que el resto y va con colocación y sellado profesional. El material (granito natural o sintético premium) lo definimos juntos.',
+    a: 'La mesada es un módulo aparte que sumás en la calculadora si la necesitás, porque no todos la cambian. Se cotiza por metro lineal igual que el resto y va con colocación y sellado profesional. El material (granito natural o sintético premium) lo definimos juntos.',
   },
   {
     q: '¿Trabajan fuera de Santa Fe Capital?',

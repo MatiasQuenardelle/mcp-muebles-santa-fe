@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react'
 import { useWhatsAppCTA } from '@/lib/useWhatsAppCTA'
 import {
-  DESCUENTO_ECONOMICA,
+  LARGO_MAX,
+  LARGO_MIN,
+  LARGO_PASO,
   LINEAS,
-  MEDIDAS,
   MODULOS,
   PRECIOS_ACTUALIZADOS,
   precioModulo,
@@ -14,10 +15,14 @@ import {
 } from './data'
 import { Eyebrow, IconoWhatsApp, Titulo, formatearPesos } from './ui'
 
-/** −1 = ese módulo no entra en el presupuesto. */
-type Seleccion = Record<ModuloId, number>
+/** Largo en cm. Se recuerda aunque el módulo no entre en el presupuesto. */
+type Seleccion = Record<ModuloId, { largo: number; incluido: boolean }>
 
-const SELECCION_INICIAL: Seleccion = { bajoMesada: 2, alacena: 2, mesada: -1 }
+const SELECCION_INICIAL: Seleccion = {
+  bajoMesada: { largo: 200, incluido: true },
+  alacena: { largo: 160, incluido: true },
+  mesada: { largo: 200, incluido: false },
+}
 
 const NOTA_COLOCACION: Record<LineaId, string> = {
   economica: 'Sin colocación · entrega a domicilio',
@@ -25,24 +30,33 @@ const NOTA_COLOCACION: Record<LineaId, string> = {
   premium: 'Colocación profesional incluida',
 }
 
+const metros = (largo: number) => (largo / 100).toFixed(2)
+
 export default function Calculadora() {
   const [linea, setLinea] = useState<LineaId>('estandar')
   const [seleccion, setSeleccion] = useState<Seleccion>(SELECCION_INICIAL)
 
+  const ajustarLargo = (id: ModuloId, largo: number) =>
+    setSeleccion((s) => ({
+      ...s,
+      [id]: { largo: Math.min(Math.max(largo, LARGO_MIN), LARGO_MAX), incluido: true },
+    }))
+
+  const alternarModulo = (id: ModuloId) =>
+    setSeleccion((s) => ({ ...s, [id]: { ...s[id], incluido: !s[id].incluido } }))
+
   const items = useMemo(
     () =>
-      MODULOS.filter((m) => seleccion[m.id] >= 0).map((m) => ({
+      MODULOS.filter((m) => seleccion[m.id].incluido).map((m) => ({
         id: m.id,
         nombre: m.nombre,
-        medida: MEDIDAS[seleccion[m.id]],
-        precio: precioModulo(linea, m.id, seleccion[m.id]),
+        medida: metros(seleccion[m.id].largo),
+        precio: precioModulo(linea, m.id, seleccion[m.id].largo),
       })),
     [linea, seleccion]
   )
 
-  const subtotal = items.reduce((acc, i) => acc + i.precio, 0)
-  const descuento = linea === 'economica' && subtotal > 0 ? DESCUENTO_ECONOMICA : 0
-  const total = Math.max(subtotal - descuento, 0)
+  const total = items.reduce((acc, i) => acc + i.precio, 0)
   const nombreLinea = LINEAS.find((l) => l.id === linea)?.nombre ?? ''
 
   const mensaje = useMemo(() => {
@@ -52,16 +66,13 @@ export default function Calculadora() {
     const detalle = items
       .map((i) => `· ${i.nombre} ${i.medida} m — ${formatearPesos(i.precio)}`)
       .join('\n')
-    const lineaDescuento = descuento
-      ? `\n· Descuento línea Económica — −${formatearPesos(descuento)}`
-      : ''
     return [
       `Hola Marcelo, armé este presupuesto en la calculadora de la web (línea ${nombreLinea}):`,
-      `${detalle}${lineaDescuento}`,
+      detalle,
       `Total orientativo: ${formatearPesos(total)}`,
       '¿Me confirmás el precio exacto para mis medidas?',
     ].join('\n\n')
-  }, [items, descuento, nombreLinea, total])
+  }, [items, nombreLinea, total])
 
   const { href, handleClick } = useWhatsAppCTA({
     baseMessage: mensaje,
@@ -83,9 +94,10 @@ export default function Calculadora() {
             italica="cuánto sale, ahora."
           />
           <p className="mt-5 text-[15px] leading-relaxed text-white/60">
-            Elegí la línea, sumá los módulos que necesitás y la calculadora te da el número
-            con la lista de precios de MCP. Es orientativo: el precio final sale del
-            relevamiento de tu espacio, pero te deja saber en qué rango estás parado.
+            Elegí la línea, poné los metros lineales de cada módulo (de a 10 cm) y la
+            calculadora te da el número con la lista de precios de MCP. Es orientativo: el
+            precio final sale del relevamiento de tu espacio, pero te deja saber en qué rango
+            estás parado.
           </p>
         </div>
 
@@ -128,12 +140,12 @@ export default function Calculadora() {
 
             <div className="mt-10">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted">
-                2 · Sumá los módulos
+                2 · Poné los metros lineales
               </p>
 
               <div className="mt-5 space-y-7">
                 {MODULOS.map((m) => {
-                  const index = seleccion[m.id]
+                  const { largo, incluido } = seleccion[m.id]
                   return (
                     <div key={m.id} className="min-w-0">
                       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -141,46 +153,73 @@ export default function Calculadora() {
                           {m.nombre}
                         </h3>
                         <span className="font-display text-[17px] text-brand-gold">
-                          {index >= 0 ? formatearPesos(precioModulo(linea, m.id, index)) : '—'}
+                          {incluido ? formatearPesos(precioModulo(linea, m.id, largo)) : '—'}
                         </span>
                       </div>
                       <p className="mt-1 text-[13px] leading-relaxed text-brand-muted">
                         {m.detalle}
                       </p>
 
-                      <div className="mt-3.5 flex flex-wrap gap-2">
-                        {MEDIDAS.map((medida, i) => {
-                          const activa = index === i
-                          return (
-                            <button
-                              key={medida}
-                              type="button"
-                              onClick={() =>
-                                setSeleccion((s) => ({ ...s, [m.id]: activa ? -1 : i }))
-                              }
-                              aria-pressed={activa}
-                              className={`rounded border px-3 py-2 text-[13px] font-medium tabular-nums transition-all ${
-                                activa
-                                  ? 'border-brand-dark bg-brand-dark text-white'
-                                  : 'border-brand-border text-brand-muted hover:border-brand-dark/40 hover:text-brand-dark'
-                              }`}
-                            >
-                              {medida} m
-                            </button>
-                          )
-                        })}
+                      <div className="mt-3.5 flex flex-wrap items-center gap-3">
+                        <div
+                          className={`flex items-center rounded border transition-all ${
+                            incluido
+                              ? 'border-brand-dark'
+                              : 'border-brand-border opacity-50'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => ajustarLargo(m.id, largo - LARGO_PASO)}
+                            disabled={incluido && largo <= LARGO_MIN}
+                            aria-label={`Restar 10 cm a ${m.nombre}`}
+                            className="h-10 w-10 text-[18px] text-brand-dark transition-colors hover:bg-brand-dark/5 disabled:opacity-30"
+                          >
+                            −
+                          </button>
+                          <output
+                            aria-live="polite"
+                            className="min-w-[4.5rem] text-center text-[14px] font-semibold tabular-nums text-brand-dark"
+                          >
+                            {metros(largo)} m
+                          </output>
+                          <button
+                            type="button"
+                            onClick={() => ajustarLargo(m.id, largo + LARGO_PASO)}
+                            disabled={incluido && largo >= LARGO_MAX}
+                            aria-label={`Sumar 10 cm a ${m.nombre}`}
+                            className="h-10 w-10 text-[18px] text-brand-dark transition-colors hover:bg-brand-dark/5 disabled:opacity-30"
+                          >
+                            +
+                          </button>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => setSeleccion((s) => ({ ...s, [m.id]: -1 }))}
-                          aria-pressed={index === -1}
+                          onClick={() => alternarModulo(m.id)}
+                          aria-pressed={!incluido}
                           className={`rounded border px-3 py-2 text-[13px] font-medium transition-all ${
-                            index === -1
+                            !incluido
                               ? 'border-brand-dark bg-brand-dark text-white'
                               : 'border-brand-border text-brand-muted hover:border-brand-dark/40 hover:text-brand-dark'
                           }`}
                         >
                           No lo llevo
                         </button>
+                      </div>
+
+                      <input
+                        type="range"
+                        min={LARGO_MIN}
+                        max={LARGO_MAX}
+                        step={LARGO_PASO}
+                        value={largo}
+                        onChange={(e) => ajustarLargo(m.id, Number(e.target.value))}
+                        aria-label={`Largo de ${m.nombre} en centímetros`}
+                        className={`mt-3 w-full accent-brand-dark ${incluido ? '' : 'opacity-40'}`}
+                      />
+                      <div className="flex justify-between text-[11px] tabular-nums text-brand-muted">
+                        <span>{metros(LARGO_MIN)} m</span>
+                        <span>{metros(LARGO_MAX)} m</span>
                       </div>
                     </div>
                   )
@@ -213,15 +252,6 @@ export default function Calculadora() {
                   </div>
                 ))
               )}
-
-              {descuento > 0 ? (
-                <div className="flex items-baseline justify-between gap-3 text-brand-gold">
-                  <span className="text-[13.5px]">Descuento línea Económica</span>
-                  <span className="flex-shrink-0 text-[13.5px] tabular-nums">
-                    −{formatearPesos(descuento)}
-                  </span>
-                </div>
-              ) : null}
             </div>
 
             <div className="pt-6">
@@ -233,8 +263,7 @@ export default function Calculadora() {
               </p>
               <p className="mt-3 text-[12px] leading-relaxed text-brand-muted-dark">
                 {NOTA_COLOCACION[linea]}. Precios de lista actualizados a{' '}
-                {PRECIOS_ACTUALIZADOS}, en pesos. Medidas especiales y trabajos en L se
-                cotizan aparte.
+                {PRECIOS_ACTUALIZADOS}, en pesos. Los trabajos en L se cotizan aparte.
               </p>
             </div>
 
@@ -253,45 +282,7 @@ export default function Calculadora() {
             </p>
           </div>
         </div>
-
-        {/* Estudio previo */}
-        <div className="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-6 sm:p-8 md:flex md:items-center md:justify-between md:gap-10">
-          <div className="min-w-0">
-            <h3 className="font-display text-[21px] font-semibold text-white">
-              ¿Querés el número exacto, no el orientativo?
-            </h3>
-            <p className="mt-2 max-w-[62ch] text-[13.5px] leading-relaxed text-white/55">
-              El estudio previo incluye visita, mediciones precisas, asesoramiento, diseño y
-              presupuesto itemizado por escrito. Cuesta{' '}
-              <span className="font-semibold text-brand-gold">$40.000</span> y se descuenta
-              del total si avanzás. Si no avanzás, te quedás con las medidas exactas y un
-              presupuesto profesional para comparar.
-            </p>
-          </div>
-          <EstudioPrevioCTA />
-        </div>
       </div>
     </section>
-  )
-}
-
-function EstudioPrevioCTA() {
-  const { href, handleClick } = useWhatsAppCTA({
-    baseMessage:
-      'Hola Marcelo, quiero coordinar la visita para el presupuesto detallado ($40.000 descontables del total).',
-    ctaLabel: 'Coordinar la visita',
-    placement: 'cocinas_estudio_previo',
-  })
-
-  return (
-    <a
-      href={href}
-      onClick={handleClick}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-5 inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-md border border-brand-gold px-6 py-3.5 text-[12.5px] font-bold uppercase tracking-[0.08em] text-brand-gold transition-all hover:bg-brand-gold hover:text-brand-dark md:mt-0"
-    >
-      Coordinar la visita
-    </a>
   )
 }

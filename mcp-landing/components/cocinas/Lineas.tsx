@@ -97,9 +97,9 @@ export default function Lineas() {
 
         <Reveal>
           <p className="mt-8 max-w-[70ch] text-[13px] leading-relaxed text-brand-muted">
-            La Económica y la Estándar comparten la tabla de precios: son los mismos módulos y
-            el mismo tablero. La diferencia es que en la Económica te entregamos los muebles y
-            los colocás vos, y por eso descontamos $50.000.{' '}
+            La Económica y la Estándar son los mismos módulos y el mismo tablero. La
+            diferencia es que en la Económica te entregamos los muebles y los colocás vos, y
+            por eso el bajo mesada sale $50.000 menos por metro lineal.{' '}
             <a href="#calculadora" className="font-medium text-brand-gold underline decoration-brand-gold/40 underline-offset-4 hover:decoration-brand-gold">
               Comparalas en la calculadora
             </a>
