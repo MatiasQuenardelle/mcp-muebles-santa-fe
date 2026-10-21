@@ -1,4 +1,4 @@
-const DEFAULT_WHATSAPP_NUMBER = '5493425196295'
+const DEFAULT_WHATSAPP_NUMBER = '5493424081534'
 
 const configuredWhatsAppNumber = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, '')
 const rawWhatsAppNumber = configuredWhatsAppNumber || DEFAULT_WHATSAPP_NUMBER

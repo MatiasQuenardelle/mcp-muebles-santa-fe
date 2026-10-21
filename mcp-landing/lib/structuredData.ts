@@ -15,7 +15,7 @@ export const businessJsonLd = {
   description:
     'F\u00e1brica de cocinas a medida en Santa Fe con instalaci\u00f3n completa. Melamina EGGER, mesadas de granito natural, herrajes Grupo Euro y bacha Johnson. 20 a\u00f1os de experiencia.',
   url: `${SITE_URL}/`,
-  telephone: '+5493425196295',
+  telephone: '+5493424081534',
   image: `${SITE_URL}/logo.jpg`,
   logo: `${SITE_URL}/logo.jpg`,
   priceRange: '$$',
