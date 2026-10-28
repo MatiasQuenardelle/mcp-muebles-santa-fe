@@ -96,7 +96,10 @@ export function db(): NeonQueryFunction<false, false> {
     if (!url) {
       throw new Error('DATABASE_URL no está configurada')
     }
-    client = neon(url)
+    // El driver consulta por fetch POST, y Next 14 guarda esos fetch en su Data
+    // Cache dentro de los GET de route handlers aun con force-dynamic: el PDF de
+    // un presupuesto borrado se seguía sirviendo. La base nunca se cachea.
+    client = neon(url, { fetchOptions: { cache: 'no-store' } })
   }
   return client
 }
