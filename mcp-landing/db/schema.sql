@@ -90,7 +90,7 @@ alter table conversations add column if not exists status_changed_at timestamptz
 
 -- Historial de lo que se hizo con cada contacto. Los cambios de estado se
 -- registran solos; el resto lo carga el dueño desde el panel.
---   kind: nota | llamada | whatsapp | visita | presupuesto | estado | alta
+--   kind: nota | llamada | whatsapp | visita | presupuesto | estado | alta | asignacion
 create table if not exists activities (
   id              bigserial primary key,
   conversation_id uuid        not null references conversations(id) on delete cascade,
@@ -119,3 +119,69 @@ create index if not exists messages_conversation_idx
 
 create index if not exists leads_recent_idx
   on leads (site_id, created_at desc);
+
+-- Acceso al panel (2026-10-21). Reemplaza a la contraseña única compartida:
+-- cada persona tiene su cuenta, entra por un link de invitación de un solo uso
+-- y elige su propia contraseña. Ver lib/session.ts.
+create table if not exists admin_users (
+  id               uuid        primary key,
+  -- Siempre en minúsculas: el login compara contra esto.
+  email            text        not null unique,
+  name             text        not null,
+  -- owner: además del CRM, administra usuarios. user: solo el CRM.
+  role             text        not null default 'user' check (role in ('owner', 'user')),
+  -- scrypt (lib/password.ts). Null hasta que la persona acepta la invitación.
+  password_hash    text,
+  -- Secreto TOTP cifrado con AES-GCM (lib/totp.ts). Se guarda al empezar a
+  -- configurarlo; recién vale cuando totp_enabled = true.
+  totp_secret      text,
+  totp_enabled     boolean     not null default false,
+  active           boolean     not null default true,
+  created_at       timestamptz not null default now(),
+  last_login_at    timestamptz
+);
+
+-- Se guarda el SHA-256 del token, nunca el token: con un volcado de la base no
+-- alcanza para entrar.
+create table if not exists admin_sessions (
+  token_hash   text        primary key,
+  user_id      uuid        not null references admin_users(id) on delete cascade,
+  created_at   timestamptz not null default now(),
+  expires_at   timestamptz not null,
+  revoked_at   timestamptz,
+  user_agent   text
+);
+
+create index if not exists admin_sessions_user_idx on admin_sessions (user_id);
+
+-- Links de alta y de "restablecer contraseña". Un solo uso, vencen a las 48 h.
+create table if not exists admin_invites (
+  token_hash   text        primary key,
+  user_id      uuid        not null references admin_users(id) on delete cascade,
+  created_at   timestamptz not null default now(),
+  expires_at   timestamptz not null,
+  used_at      timestamptz
+);
+
+-- Intentos fallidos de login, para frenar la fuerza bruta. key es
+-- 'email:<email>' o 'ip:<hash>'.
+create table if not exists admin_login_failures (
+  id          bigserial   primary key,
+  key         text        not null,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists admin_login_failures_key_idx
+  on admin_login_failures (key, created_at desc);
+
+-- Quién registró cada entrada del historial.
+alter table activities add column if not exists user_id uuid references admin_users(id) on delete set null;
+
+-- Responsable del contacto (2026-10-22). Un usuario 'user' ve solo los suyos y
+-- los sin asignar (para poder tomarlos); el dueño ve todo y reparte. Los chats
+-- de la web entran sin asignar. Si se borra el usuario, el contacto vuelve al pozo.
+alter table conversations add column if not exists assigned_to uuid references admin_users(id) on delete set null;
+
+create index if not exists conversations_assigned_idx
+  on conversations (assigned_to)
+  where assigned_to is not null;

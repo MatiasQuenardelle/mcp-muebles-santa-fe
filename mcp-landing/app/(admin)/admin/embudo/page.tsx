@@ -12,9 +12,9 @@ export const metadata = { title: 'Embudo · Panel MCP' }
 const LOST_WINDOW_MS = 60 * 86_400_000
 
 export default async function PipelinePage() {
-  await requireAdminPage()
+  const user = await requireAdminPage()
 
-  const rows = isDatabaseConfigured() ? await listAllConversations() : []
+  const rows = isDatabaseConfigured() ? await listAllConversations(user) : []
   const cutoff = Date.now() - LOST_WINDOW_MS
 
   const items: KanbanItem[] = rows

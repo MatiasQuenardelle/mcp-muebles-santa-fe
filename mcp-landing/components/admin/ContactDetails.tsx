@@ -20,6 +20,7 @@ interface Props {
   amount: number | null
   lostReason: string | null
   origin: string
+  canDelete: boolean
 }
 
 // Ficha del contacto. Muestra lo que hay (editado a mano o, si no, lo que sacó
@@ -32,6 +33,7 @@ export default function ContactDetails({
   amount,
   lostReason,
   origin,
+  canDelete,
 }: Props) {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
@@ -198,13 +200,15 @@ export default function ContactDetails({
         >
           Cancelar
         </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          className="ml-auto text-xs font-semibold text-red-700 underline underline-offset-2"
-        >
-          Borrar contacto
-        </button>
+        {canDelete ? (
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="ml-auto text-xs font-semibold text-red-700 underline underline-offset-2"
+          >
+            Borrar contacto
+          </button>
+        ) : null}
       </div>
     </form>
   )

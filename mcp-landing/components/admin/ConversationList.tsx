@@ -40,11 +40,13 @@ export default function ConversationList({
   activeId,
   search,
   filter,
+  viewerId,
 }: {
   conversations: ConversationRow[]
   activeId: string | null
   search: string
   filter: ConversationFilter
+  viewerId: string
 }) {
   return (
     <ul>
@@ -143,6 +145,13 @@ export default function ConversationList({
                       className={`text-[10px] font-semibold px-1.5 rounded-full border ${FOLLOW_UP_STYLES[followUp.tone]}`}
                     >
                       ⏰ {followUp.label}
+                    </span>
+                  ) : null}
+                  {/* Solo el de otro: los propios no necesitan rótulo, y los sin
+                      asignar se encuentran con el filtro. */}
+                  {conversation.assigned_name && conversation.assigned_to !== viewerId ? (
+                    <span className="text-[10px] font-semibold text-brand-dark bg-brand-card border border-brand-border rounded-full px-1.5">
+                      {conversation.assigned_name.split(' ')[0]}
                     </span>
                   ) : null}
                   {conversation.went_to_whatsapp ? (

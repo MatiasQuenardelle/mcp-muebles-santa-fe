@@ -1,9 +1,10 @@
-// Sesión del panel de admin: una sola contraseña compartida + cookie firmada.
-// Usa solo Web Crypto, así que corre igual en el runtime Edge (middleware.ts)
-// y en Node (route handlers). No importar nada de lib/db acá.
+// Cookie de sesión del panel. Usa solo Web Crypto, así que corre igual en el
+// runtime Edge (middleware.ts) y en Node (route handlers). No importar nada de
+// lib/db acá: la validación contra la base (sesión revocada, usuario dado de
+// baja) vive en lib/session.ts.
 
 export const ADMIN_COOKIE = 'mcp_admin'
-export const ADMIN_SESSION_DAYS = 60
+export const ADMIN_SESSION_DAYS = 30
 
 function base64url(bytes: Uint8Array): string {
   let binary = ''
@@ -29,42 +30,54 @@ function secret(): string | null {
   return (process.env.ADMIN_SESSION_SECRET ?? '').trim() || null
 }
 
-/** Token con forma `<expiraciónEnMs>.<firma>`. */
-export async function createSessionToken(): Promise<string | null> {
+export function randomToken(): string {
+  return base64url(crypto.getRandomValues(new Uint8Array(32)))
+}
+
+export async function sha256Base64url(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return base64url(new Uint8Array(digest))
+}
+
+/**
+ * Cookie con forma `<sesión>.<expiraciónEnMs>.<firma>`. La sesión es un token
+ * al azar cuyo hash está en admin_sessions; la firma deja que el middleware
+ * descarte cookies inventadas sin ir a la base.
+ */
+export async function signSessionCookie(
+  sessionToken: string,
+  expiresAt: number
+): Promise<string | null> {
   const key = secret()
   if (!key) {
     return null
   }
-  const exp = String(Date.now() + ADMIN_SESSION_DAYS * 86_400_000)
-  return `${exp}.${await hmac(exp, key)}`
+  const payload = `${sessionToken}.${expiresAt}`
+  return `${payload}.${await hmac(payload, key)}`
 }
 
-export async function verifySessionToken(token: string | undefined | null): Promise<boolean> {
+/** Devuelve el token de sesión si la cookie está bien firmada y no venció. */
+export async function readSessionCookie(cookie: string | undefined | null): Promise<string | null> {
   const key = secret()
-  if (!key || !token) {
-    return false
+  if (!key || !cookie) {
+    return null
   }
-
-  const dot = token.lastIndexOf('.')
-  if (dot <= 0) {
-    return false
+  const parts = cookie.split('.')
+  if (parts.length !== 3) {
+    return null
   }
-
-  const exp = token.slice(0, dot)
-  const signature = token.slice(dot + 1)
-
+  const [sessionToken, exp, signature] = parts
   const expiresAt = Number(exp)
   if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
-    return false
+    return null
   }
-
-  const expected = await hmac(exp, key)
-  return timingSafeEqual(signature, expected)
+  const expected = await hmac(`${sessionToken}.${exp}`, key)
+  return timingSafeEqual(signature, expected) ? sessionToken : null
 }
 
-// En Edge no existe crypto.timingSafeEqual. Comparar las firmas (no la
-// contraseña) carácter a carácter en tiempo constante alcanza para no filtrar
-// información por el tiempo de respuesta.
+// En Edge no existe crypto.timingSafeEqual. Comparar las firmas carácter a
+// carácter en tiempo constante alcanza para no filtrar información por el
+// tiempo de respuesta.
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) {
     return false
@@ -76,37 +89,15 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
-/**
- * Compara la contraseña ingresada con ADMIN_PASSWORD sin filtrar el largo:
- * se comparan los HMAC, no los strings crudos.
- */
-export async function checkPassword(candidate: string): Promise<boolean> {
-  const expected = (process.env.ADMIN_PASSWORD ?? '').trim()
-  const key = secret()
-  if (!expected || !key) {
-    return false
-  }
-  return timingSafeEqual(await hmac(candidate, key), await hmac(expected, key))
-}
-
 export function isAdminConfigured(): boolean {
-  return Boolean((process.env.ADMIN_PASSWORD ?? '').trim() && secret())
+  return Boolean(secret())
 }
 
-function readCookie(request: Request, name: string): string | null {
+export function readCookie(request: Request, name: string): string | null {
   const header = request.headers.get('cookie')
   if (!header) {
     return null
   }
   const match = header.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
   return match ? decodeURIComponent(match[1]) : null
-}
-
-/**
- * Re-verificación en cada route handler de /api/admin/*. El middleware solo no
- * alcanza: la familia next 14.2 tuvo un bypass de auth por middleware
- * (CVE-2025-29927) y el rango "^14.2.0" del package.json puede moverse.
- */
-export async function requireAdmin(request: Request): Promise<boolean> {
-  return verifySessionToken(readCookie(request, ADMIN_COOKIE))
 }

@@ -76,8 +76,9 @@ export type ActivityKind =
   | 'presupuesto'
   | 'estado'
   | 'alta'
+  | 'asignacion'
 
-// Las que se cargan a mano. 'estado' y 'alta' las registra el sistema.
+// Las que se cargan a mano. 'estado', 'alta' y 'asignacion' las registra el sistema.
 export const MANUAL_ACTIVITY_KINDS: ActivityKind[] = [
   'nota',
   'llamada',
@@ -94,6 +95,7 @@ export const ACTIVITY_LABELS: Record<ActivityKind, string> = {
   presupuesto: 'Presupuesto enviado',
   estado: 'Cambio de estado',
   alta: 'Contacto cargado',
+  asignacion: 'Responsable',
 }
 
 export function isManualActivityKind(value: unknown): value is ActivityKind {
@@ -108,9 +110,13 @@ export type ConversationFilter =
   | 'seguimiento'
   | 'calientes'
   | 'con_telefono'
+  | 'mios'
+  | 'sin_asignar'
 
 export const CONVERSATION_FILTERS: ConversationFilter[] = [
   'todas',
+  'mios',
+  'sin_asignar',
   'no_leidas',
   'pendientes',
   'seguimiento',
@@ -125,6 +131,8 @@ export const FILTER_LABELS: Record<ConversationFilter, string> = {
   seguimiento: 'Seguimiento hoy',
   calientes: 'Calientes',
   con_telefono: 'Con teléfono',
+  mios: 'Míos',
+  sin_asignar: 'Sin asignar',
 }
 
 export function parseFilter(value: string | undefined): ConversationFilter {

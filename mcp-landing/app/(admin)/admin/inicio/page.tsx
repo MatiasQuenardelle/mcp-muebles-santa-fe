@@ -22,6 +22,7 @@ import {
   listAllConversations,
   type ConversationRow,
 } from '@/lib/db'
+import { listTeam } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,14 +56,20 @@ function channel(row: ConversationRow): string {
 }
 
 export default async function HomePage({ searchParams }: { searchParams: { p?: string } }) {
-  await requireAdminPage()
+  const user = await requireAdminPage()
+  const isOwner = user.role === 'owner'
 
   const period: Period = searchParams.p && searchParams.p in PERIODS ? (searchParams.p as Period) : 'mes'
   const since = periodStart(period)
 
-  const [rows, whatsappClicks] = isDatabaseConfigured()
-    ? await Promise.all([listAllConversations(), countWhatsAppClicksSince(since)])
-    : [[], 0]
+  // Un usuario común ve sus números y los sin asignar; el dueño, todo el negocio.
+  const [rows, whatsappClicks, team] = isDatabaseConfigured()
+    ? await Promise.all([
+        listAllConversations(user),
+        countWhatsAppClicksSince(since),
+        isOwner ? listTeam() : Promise.resolve([]),
+      ])
+    : [[], 0, []]
 
   // Agenda: seguimientos abiertos hasta una semana adelante.
   const today = todayKey()
@@ -106,10 +113,32 @@ export default async function HomePage({ searchParams }: { searchParams: { p?: s
   const maxStatus = Math.max(1, ...byStatus.map((item) => item.count))
   const maxChannel = Math.max(1, ...byChannel.map(([, item]) => item.total))
 
+  // Por responsable, para que el dueño vea quién tiene qué y quién se atrasa.
+  // Con una sola persona en el panel no aporta nada y no se muestra.
+  const byMember = [...team, { id: null, name: 'Sin asignar' }].map((member) => {
+    const mine = (row: ConversationRow) => row.assigned_to === member.id
+    const memberWon = cohort.filter((row) => mine(row) && row.status === 'ganado')
+    return {
+      key: member.id ?? 'none',
+      name: member.name,
+      open: open.filter(mine).length,
+      late: open.filter((row) => mine(row) && row.follow_up_on && row.follow_up_on <= today).length,
+      won: memberWon.length,
+      amount: memberWon.reduce((sum, row) => sum + (row.amount ?? 0), 0),
+    }
+  })
+
   return (
     <main className="px-4 py-6 sm:px-6 max-w-5xl mx-auto">
       <div className="max-w-3xl">
-        <AdminHeader title="Inicio" subtitle="Qué hay que hacer hoy y cómo viene el mes" />
+        <AdminHeader
+          title="Inicio"
+          subtitle={
+            isOwner
+              ? 'Qué hay que hacer hoy y cómo viene el mes'
+              : 'Tus contactos y los que están sin asignar'
+          }
+        />
       </div>
 
       {/* grid-cols-1 + min-w-0: sin eso la columna implícita crece al ancho de
@@ -202,6 +231,46 @@ export default async function HomePage({ searchParams }: { searchParams: { p?: s
             </p>
           </Panel>
 
+          {team.length > 1 ? (
+            <Panel title="Equipo">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-wide text-brand-muted text-left">
+                    <th className="font-medium pb-2">Responsable</th>
+                    <th className="font-medium pb-2 text-right">Abiertos</th>
+                    <th className="font-medium pb-2 text-right" title="Seguimientos de hoy o vencidos">
+                      Para hoy
+                    </th>
+                    <th className="font-medium pb-2 text-right">Ventas</th>
+                    <th className="font-medium pb-2 text-right hidden sm:table-cell">Facturado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byMember.map((member) => (
+                    <tr key={member.key} className="border-t border-brand-border/60">
+                      <td className="py-1.5 pr-2 text-brand-dark">{member.name}</td>
+                      <td className="py-1.5 text-right tabular-nums font-semibold text-brand-dark">{member.open}</td>
+                      <td
+                        className={`py-1.5 text-right tabular-nums ${
+                          member.late > 0 ? 'font-semibold text-red-700' : 'text-brand-dark'
+                        }`}
+                      >
+                        {member.late}
+                      </td>
+                      <td className="py-1.5 text-right tabular-nums text-brand-dark">{member.won}</td>
+                      <td className="py-1.5 text-right tabular-nums text-brand-dark hidden sm:table-cell">
+                        {member.amount ? formatMoney(member.amount) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-[11px] text-brand-muted mt-3">
+                Ventas y facturado: contactos que entraron en el período elegido arriba.
+              </p>
+            </Panel>
+          ) : null}
+
           <Panel title="Dónde está cada contacto del período">
             {cohort.length === 0 ? (
               <Empty>No entraron contactos en este período.</Empty>
@@ -257,12 +326,14 @@ export default async function HomePage({ searchParams }: { searchParams: { p?: s
                 </tbody>
               </table>
             )}
-            <a
-              href="/api/admin/export"
-              className="inline-block mt-4 text-xs font-semibold text-brand-dark border border-brand-border rounded-full px-3 py-1.5 bg-white"
-            >
-              Descargar planilla de contactos (CSV)
-            </a>
+            {isOwner ? (
+              <a
+                href="/api/admin/export"
+                className="inline-block mt-4 text-xs font-semibold text-brand-dark border border-brand-border rounded-full px-3 py-1.5 bg-white"
+              >
+                Descargar planilla de contactos (CSV)
+              </a>
+            ) : null}
           </Panel>
         </div>
       </div>

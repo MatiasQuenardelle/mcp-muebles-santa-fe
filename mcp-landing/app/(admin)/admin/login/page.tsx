@@ -9,7 +9,7 @@ export default function LoginPage({
 }) {
   // Solo se aceptan rutas internas: un "next" externo sería un open redirect.
   const next = searchParams.next
-  const target = next && next.startsWith('/admin') ? next : '/admin'
+  const target = next && next.startsWith('/admin') ? next : '/admin/inicio'
 
   return (
     <main className="min-h-screen flex items-center justify-center px-5 py-16">

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdmin } from '@/lib/session'
 import { generateCard } from '@/lib/card'
 import {
   claimConversationsForCard,

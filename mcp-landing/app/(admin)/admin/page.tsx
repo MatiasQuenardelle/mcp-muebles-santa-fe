@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import ActivityLog from '@/components/admin/ActivityLog'
 import AdminHeader from '@/components/admin/AdminHeader'
+import AssigneeBox from '@/components/admin/AssigneeBox'
 import AutoRefresh from '@/components/admin/AutoRefresh'
 import CardGenerator from '@/components/admin/CardGenerator'
 import ContactAvatar from '@/components/admin/ContactAvatar'
@@ -32,6 +33,7 @@ import {
   listActivities,
   listConversations,
 } from '@/lib/db'
+import { listTeam } from '@/lib/session'
 
 // Siempre fresco: es un panel operativo, no puede servirse cacheado.
 export const dynamic = 'force-dynamic'
@@ -51,7 +53,7 @@ export default async function AdminPage({
 }: {
   searchParams: { q?: string; f?: string; c?: string }
 }) {
-  await requireAdminPage()
+  const user = await requireAdminPage()
 
   if (!isDatabaseConfigured()) {
     return (
@@ -69,13 +71,17 @@ export default async function AdminPage({
   const filter = parseFilter(searchParams.f)
   const selectedId = UUID_RE.test(searchParams.c ?? '') ? (searchParams.c as string) : null
 
-  const [conversations, stats, conversation, messages, activities] = await Promise.all([
-    listConversations({ search, filter }),
-    getStats(),
-    selectedId ? getConversation(selectedId) : Promise.resolve(null),
-    selectedId ? getMessages(selectedId) : Promise.resolve([]),
-    selectedId ? listActivities(selectedId) : Promise.resolve([]),
+  const isOwner = user.role === 'owner'
+  // Mensajes e historial se piden solo si getConversation dice que lo puede ver.
+  const [conversations, stats, conversation, team] = await Promise.all([
+    listConversations({ viewer: user, search, filter }),
+    getStats(user),
+    selectedId ? getConversation(selectedId, user) : Promise.resolve(null),
+    isOwner ? listTeam() : Promise.resolve(null),
   ])
+  const [messages, activities] = conversation
+    ? await Promise.all([getMessages(conversation.id), listActivities(conversation.id)])
+    : [[], []]
 
   const card = conversation?.card ?? null
   const contact = conversation ? contactView(conversation) : null
@@ -135,6 +141,7 @@ export default async function AdminPage({
               activeId={selectedId}
               search={search}
               filter={filter}
+              viewerId={user.id}
             />
           )}
         </div>
@@ -206,6 +213,15 @@ export default async function AdminPage({
                 </p>
               ) : null}
 
+              <AssigneeBox
+                key={`as:${conversation.assigned_to}`}
+                id={conversation.id}
+                assignedTo={conversation.assigned_to}
+                assignedName={conversation.assigned_name}
+                viewerId={user.id}
+                team={team}
+              />
+
               <FollowUpBox
                 key={`fu:${conversation.follow_up_on}:${conversation.follow_up_note}`}
                 id={conversation.id}
@@ -223,6 +239,7 @@ export default async function AdminPage({
                 amount={conversation.amount}
                 lostReason={conversation.lost_reason}
                 origin={leadOrigin(conversation)}
+                canDelete={isOwner}
               />
 
               {/* Colapsada por defecto: la tarjeta es salida de un modelo, así que
@@ -312,6 +329,7 @@ export default async function AdminPage({
             <footer className="flex-shrink-0 border-t border-brand-border bg-brand-cream px-3 sm:px-4 py-3">
               <ConversationActions
                 id={conversation.id}
+                sender={user.name.split(' ')[0]}
                 phone={contact.telefono}
                 nombre={contact.nombre}
                 proyecto={contact.proyecto}

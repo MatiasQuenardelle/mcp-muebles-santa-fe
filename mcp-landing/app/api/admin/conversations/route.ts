@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { InputError, parseEditableFields } from '@/lib/adminInput'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdmin } from '@/lib/session'
 import { isConversationStatus } from '@/lib/crm'
 import { createManualLead } from '@/lib/db'
 
 // Alta manual: contactos que llegaron por fuera del chat de la web.
 export async function POST(request: Request) {
-  if (!(await requireAdmin(request))) {
+  const user = await requireAdmin(request)
+  if (!user) {
     return NextResponse.json({ error: 'No autorizado.' }, { status: 401 })
   }
 
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
       status,
       follow_up_on: fields.follow_up_on ?? null,
       note,
+      userId: user.id,
     })
     return NextResponse.json({ ok: true, id })
   } catch (error) {

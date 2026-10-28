@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server'
 import { STATUS_LABELS, contactView, formatDateTime, leadOrigin } from '@/lib/adminFormat'
-import { requireAdmin } from '@/lib/auth'
+import { requireOwner } from '@/lib/session'
 import { listAllConversations } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 // Planilla con todos los contactos, para abrir en Excel / Google Sheets o
-// rendir cuentas de dónde salió cada venta.
+// rendir cuentas de dónde salió cada venta. Es la base entera: solo el dueño.
 export async function GET(request: Request) {
-  if (!(await requireAdmin(request))) {
-    return NextResponse.json({ error: 'No autorizado.' }, { status: 401 })
+  const owner = await requireOwner(request)
+  if (!owner) {
+    return NextResponse.json({ error: 'Solo el dueño puede descargar la planilla.' }, { status: 403 })
   }
 
-  const rows = await listAllConversations()
+  const rows = await listAllConversations(owner)
 
   const header = [
     'Fecha de ingreso',
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
     'Origen',
     'Campaña',
     'Estado',
+    'Responsable',
     'Monto',
     'Próximo seguimiento',
     'Motivo de pérdida',
@@ -45,6 +47,7 @@ export async function GET(request: Request) {
       leadOrigin(row),
       typeof campaign === 'string' ? campaign : '',
       STATUS_LABELS[row.status] ?? row.status,
+      row.assigned_name,
       row.amount ?? '',
       row.follow_up_on ?? '',
       row.lost_reason,

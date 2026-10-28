@@ -52,6 +52,16 @@ export interface ConversationRow {
   follow_up_note: string | null
   lost_reason: string | null
   status_changed_at: string | null
+  // Responsable. Null = sin asignar (todos los usuarios lo ven y lo pueden tomar).
+  assigned_to: string | null
+  assigned_name: string | null
+}
+
+// Quién mira el panel. Lo cumple el AdminUser de lib/session.ts; está acá
+// para no importar session desde db (session ya importa db).
+export interface Viewer {
+  id: string
+  role: 'owner' | 'user'
 }
 
 export interface ActivityRow {
@@ -59,6 +69,8 @@ export interface ActivityRow {
   kind: ActivityKind
   body: string | null
   created_at: string
+  // Quién la registró. Null en las del sistema o de un usuario borrado.
+  author: string | null
 }
 
 export interface MessageRow {
@@ -70,8 +82,8 @@ export interface MessageRow {
 let client: NeonQueryFunction<false, false> | null = null
 
 // Perezoso a propósito: instanciarlo en el top level tira si falta DATABASE_URL,
-// y eso rompe `next build` al recolectar las rutas.
-function db(): NeonQueryFunction<false, false> {
+// y eso rompe `next build` al recolectar las rutas. Exportado para lib/session.ts.
+export function db(): NeonQueryFunction<false, false> {
   if (!client) {
     const url = (process.env.DATABASE_URL ?? '').trim()
     if (!url) {
@@ -252,12 +264,26 @@ const CONVERSATION_COLUMNS = `
   card, card_generated_at, card_message_count, is_demo,
   (last_message_at > coalesce(last_read_at, 'epoch'::timestamptz)) as unread,
   source, email, zona, project, amount::float8 as amount,
-  follow_up_on::text as follow_up_on, follow_up_note, lost_reason, status_changed_at
+  follow_up_on::text as follow_up_on, follow_up_note, lost_reason, status_changed_at,
+  assigned_to,
+  (select u.name from admin_users u where u.id = conversations.assigned_to) as assigned_name
 `
 
 // Se ignoran los chats de un solo mensaje sin teléfono: son rebotes. Los cargados
 // a mano no tienen mensajes y se muestran siempre.
 const VISIBLE = `(message_count > 1 or phone is not null or source <> 'chat')`
+
+/**
+ * Qué contactos ve cada uno: el dueño todos; un usuario los suyos y los sin
+ * asignar. Va como `$n` con el valor de scopeOf(): null (dueño) apaga el filtro.
+ */
+function seesClause(param: number): string {
+  return `($${param}::uuid is null or assigned_to = $${param}::uuid or assigned_to is null)`
+}
+
+function scopeOf(viewer: Viewer): string | null {
+  return viewer.role === 'owner' ? null : viewer.id
+}
 
 // "Hoy" en Buenos Aires, como date. follow_up_on se compara contra esto.
 const TODAY = `(now() at time zone 'America/Argentina/Buenos_Aires')::date`
@@ -269,13 +295,14 @@ const CLOSED_LIST = CLOSED_STATUSES.map((status) => `'${status}'`).join(', ')
  * activa desde su propio parámetro (sigue siendo parametrizada, no hay
  * concatenación de valores del usuario).
  */
-export async function listConversations(options?: {
+export async function listConversations(options: {
+  viewer: Viewer
   search?: string
   filter?: ConversationFilter
 }): Promise<ConversationRow[]> {
   const sql = db()
-  const term = (options?.search ?? '').trim()
-  const filter = options?.filter ?? 'todas'
+  const term = (options.search ?? '').trim()
+  const filter = options.filter ?? 'todas'
 
   const rows = await sql.query(
     `
@@ -283,6 +310,7 @@ export async function listConversations(options?: {
     from conversations
     where site_id = $1
       and ${VISIBLE}
+      and ${seesClause(5)}
       and (
         $2 = ''
         or phone ilike $3 or name ilike $3 or email ilike $3
@@ -298,40 +326,70 @@ export async function listConversations(options?: {
         or ($4 = 'seguimiento' and follow_up_on <= ${TODAY} and status not in (${CLOSED_LIST}))
         or ($4 = 'calientes' and card->>'temperatura' = 'caliente')
         or ($4 = 'con_telefono' and (phone is not null or card->>'telefono' is not null))
+        or ($4 = 'mios' and assigned_to = $6::uuid)
+        or ($4 = 'sin_asignar' and assigned_to is null)
       )
     order by last_message_at desc
     limit 300
     `,
-    [SITE_ID, term, `%${term}%`, filter]
+    [SITE_ID, term, `%${term}%`, filter, scopeOf(options.viewer), options.viewer.id]
   )
 
   return rows as unknown as ConversationRow[]
 }
 
-export async function getConversation(id: string): Promise<ConversationRow | null> {
+/**
+ * Con viewer, devuelve null si esa persona no lo puede ver: las rutas lo usan
+ * como chequeo de acceso antes de escribir. Sin viewer es una lectura interna.
+ */
+export async function getConversation(id: string, viewer?: Viewer): Promise<ConversationRow | null> {
   const sql = db()
   const rows = (await sql.query(
-    `select ${CONVERSATION_COLUMNS} from conversations where id = $1::uuid and site_id = $2`,
-    [id, SITE_ID]
+    `select ${CONVERSATION_COLUMNS} from conversations
+     where id = $1::uuid and site_id = $2 and ${seesClause(3)}`,
+    [id, SITE_ID, viewer ? scopeOf(viewer) : null]
   )) as unknown as ConversationRow[]
   return rows[0] ?? null
 }
 
 // Todo lo visible, para el embudo, las métricas y la exportación. Con el volumen
 // de un negocio local (decenas de consultas por mes) entra entero en memoria.
-export async function listAllConversations(): Promise<ConversationRow[]> {
+export async function listAllConversations(viewer: Viewer): Promise<ConversationRow[]> {
   const sql = db()
   const rows = await sql.query(
     `
     select ${CONVERSATION_COLUMNS}
     from conversations
-    where site_id = $1 and ${VISIBLE}
+    where site_id = $1 and ${VISIBLE} and ${seesClause(2)}
     order by last_message_at desc
     limit 2000
     `,
-    [SITE_ID]
+    [SITE_ID, scopeOf(viewer)]
   )
   return rows as unknown as ConversationRow[]
+}
+
+/**
+ * Cambia el responsable y lo deja en el historial. Los permisos (quién puede
+ * asignar a quién) se chequean en la ruta. Si no cambia, no escribe nada.
+ */
+export async function assignConversation(
+  id: string,
+  assigneeId: string | null,
+  actorId: string
+): Promise<void> {
+  const sql = db()
+  const rows = (await sql`
+    update conversations
+    set assigned_to = ${assigneeId}::uuid
+    where id = ${id}::uuid and site_id = ${SITE_ID}
+      and assigned_to is distinct from ${assigneeId}::uuid
+    returning (select name from admin_users where id = ${assigneeId}::uuid) as assignee
+  `) as Array<{ assignee: string | null }>
+
+  if (rows.length > 0) {
+    await addActivity(id, 'asignacion', rows[0].assignee ?? 'sin asignar', actorId)
+  }
 }
 
 // Se llama al abrir la conversación en el panel. Es idempotente: siempre pisa
@@ -384,12 +442,13 @@ const EDITABLE_COLUMNS: Array<keyof EditableFields> = [
 
 export async function updateConversation(
   id: string,
-  fields: EditableFields & { status?: ConversationStatus }
+  fields: EditableFields & { status?: ConversationStatus },
+  userId: string | null
 ): Promise<void> {
   const sql = db()
 
   if (fields.status !== undefined) {
-    await changeStatus(id, fields.status)
+    await changeStatus(id, fields.status, userId)
   }
 
   // Los nombres de columna salen de la lista blanca, nunca del request; los
@@ -410,7 +469,11 @@ export async function updateConversation(
  * antes del UPDATE, así el registro dice de dónde a dónde pasó. Si el estado
  * no cambia, no se escribe nada.
  */
-export async function changeStatus(id: string, status: ConversationStatus): Promise<void> {
+export async function changeStatus(
+  id: string,
+  status: ConversationStatus,
+  userId: string | null
+): Promise<void> {
   const sql = db()
   const rows = (await sql`
     with previous as (
@@ -424,7 +487,7 @@ export async function changeStatus(id: string, status: ConversationStatus): Prom
   `) as Array<{ previous: string }>
 
   if (rows.length > 0) {
-    await addActivity(id, 'estado', `${rows[0].previous} → ${status}`)
+    await addActivity(id, 'estado', `${rows[0].previous} → ${status}`, userId)
   }
 }
 
@@ -441,12 +504,13 @@ const STATUS_FOR_ACTIVITY: Partial<Record<ActivityKind, ConversationStatus>> = {
 export async function addActivity(
   conversationId: string,
   kind: ActivityKind,
-  body: string | null
+  body: string | null,
+  userId: string | null
 ): Promise<void> {
   const sql = db()
   await sql`
-    insert into activities (conversation_id, kind, body)
-    values (${conversationId}::uuid, ${kind}, ${body})
+    insert into activities (conversation_id, kind, body, user_id)
+    values (${conversationId}::uuid, ${kind}, ${body}, ${userId}::uuid)
   `
 
   const target = STATUS_FOR_ACTIVITY[kind]
@@ -459,17 +523,18 @@ export async function addActivity(
     !CLOSED_STATUSES.includes(current.status) &&
     CONVERSATION_STATUSES.indexOf(current.status) < CONVERSATION_STATUSES.indexOf(target)
   ) {
-    await changeStatus(conversationId, target)
+    await changeStatus(conversationId, target, userId)
   }
 }
 
 export async function listActivities(conversationId: string): Promise<ActivityRow[]> {
   const sql = db()
   const rows = (await sql`
-    select id::int as id, kind, body, created_at
-    from activities
-    where conversation_id = ${conversationId}::uuid
-    order by created_at desc, id desc
+    select a.id::int as id, a.kind, a.body, a.created_at, u.name as author
+    from activities a
+    left join admin_users u on u.id = a.user_id
+    where a.conversation_id = ${conversationId}::uuid
+    order by a.created_at desc, a.id desc
     limit 200
   `) as unknown as ActivityRow[]
   return rows
@@ -495,25 +560,27 @@ export async function createManualLead(input: {
   status: ConversationStatus
   follow_up_on: string | null
   note: string | null
+  userId: string
 }): Promise<string> {
   const sql = db()
   const id = crypto.randomUUID()
   // last_read_at = now(): lo cargó el mismo que lo va a mirar, no es "no leído".
+  // Queda a cargo de quien lo cargó; el dueño lo puede pasar a otro desde la ficha.
   await sql.transaction([
     sql`
       insert into conversations (
         id, site_id, source, name, phone, email, zona, project, amount, status,
-        follow_up_on, message_count, last_read_at, status_changed_at
+        follow_up_on, message_count, last_read_at, status_changed_at, assigned_to
       )
       values (
         ${id}::uuid, ${SITE_ID}, ${input.source}, ${input.name}, ${input.phone},
         ${input.email}, ${input.zona}, ${input.project}, ${input.amount}, ${input.status},
-        ${input.follow_up_on}::date, 0, now(), now()
+        ${input.follow_up_on}::date, 0, now(), now(), ${input.userId}::uuid
       )
     `,
     sql`
-      insert into activities (conversation_id, kind, body)
-      values (${id}::uuid, 'alta', ${input.note})
+      insert into activities (conversation_id, kind, body, user_id)
+      values (${id}::uuid, 'alta', ${input.note}, ${input.userId}::uuid)
     `,
   ])
   return id
@@ -535,7 +602,7 @@ export interface DashboardStats {
 
 // Métricas pensadas para decidir qué hacer, no para describir: lo primero que
 // tiene que ver el dueño es cuántas consultas le quedan sin contestar.
-export async function getStats(): Promise<DashboardStats> {
+export async function getStats(viewer: Viewer): Promise<DashboardStats> {
   const sql = db()
   const rows = (await sql.query(
     `
@@ -556,9 +623,9 @@ export async function getStats(): Promise<DashboardStats> {
               at time zone 'America/Argentina/Buenos_Aires'
       ) as whatsapp_hoy
     from conversations
-    where site_id = $1 and ${VISIBLE}
+    where site_id = $1 and ${VISIBLE} and ${seesClause(2)}
     `,
-    [SITE_ID]
+    [SITE_ID, scopeOf(viewer)]
   )) as unknown as DashboardStats[]
 
   return rows[0] ?? { sin_contactar: 0, seguimiento_hoy: 0, hoy: 0, whatsapp_hoy: 0 }

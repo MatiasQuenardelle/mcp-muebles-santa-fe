@@ -7,6 +7,8 @@ import { normalizePhone } from '@/lib/adminFormat'
 
 interface Props {
   id: string
+  // Quién está usando el panel, para firmar el primer mensaje.
+  sender: string
   phone: string | null
   nombre: string | null
   proyecto: string | null
@@ -15,7 +17,7 @@ interface Props {
 // Barra fija al pie del panel derecho: lo único accionable del CRM es salir a
 // hablar con la persona, no hay canal saliente propio. Abrir WhatsApp o llamar
 // queda en el historial (y saca al contacto de "Sin contactar").
-export default function ConversationActions({ id, phone, nombre, proyecto }: Props) {
+export default function ConversationActions({ id, sender, phone, nombre, proyecto }: Props) {
   const router = useRouter()
   const [copied, setCopied] = useState(false)
 
@@ -47,7 +49,7 @@ export default function ConversationActions({ id, phone, nombre, proyecto }: Pro
 
   const waNumber = normalizePhone(phone)
   const waMessage = encodeURIComponent(
-    `Hola${nombre ? ` ${nombre}` : ''}, soy Marcelo de MCP Muebles. Vi tu consulta${
+    `Hola${nombre ? ` ${nombre}` : ''}, soy ${sender} de MCP Muebles. Vi tu consulta${
       proyecto ? ` sobre ${proyecto}` : ' en la web'
     } y te escribo para avanzar.`
   )

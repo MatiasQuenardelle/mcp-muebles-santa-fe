@@ -20,6 +20,7 @@ const ICONS: Record<ActivityKind, string> = {
   presupuesto: '$',
   estado: '→',
   alta: '+',
+  asignacion: '◉',
 }
 
 const PLACEHOLDERS: Record<string, string> = {
@@ -132,6 +133,7 @@ export default function ActivityLog({ id, activities }: { id: string; activities
                   title={formatDateTime(activity.created_at)}
                 >
                   {formatRelative(activity.created_at)}
+                  {activity.author ? ` · ${activity.author}` : ''}
                 </span>
                 {MANUAL_ACTIVITY_KINDS.includes(activity.kind) ? (
                   <button
