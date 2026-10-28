@@ -181,5 +181,10 @@ Ese patrón es: `requireAdmin` → `UUID_RE` → `getConversation(id, user)` par
 - [x] Prod verificado: páginas, redirect de /admin, validaciones 400, rutas admin 401, PDF 200 con no-store,
       y el formulario de `/cocinas` en iPhone 13 (Playwright) sin scroll horizontal.
 - [x] Contacto de prueba borrado y `presupuesto_numero_seq` reiniciada: el primero real sale 2026-001.
+- [x] Bug encontrado al verificar: prod seguía sirviendo el PDF ya borrado. Next 14 cacheaba los fetch POST del
+      driver de Neon en los GET de route handlers (aun con force-dynamic). Arreglado en `db()` con
+      `fetchOptions: { cache: 'no-store' }` (`1c8fdca`); ahora da 404. Afectaba también al export CSV.
+- [ ] Desde la red de Matías, conectar a la IP de `www.mcpmuebles.com` (216.198.79.1) tarda ~15 s; la de
+      `mcpmuebles.com` (64.29.17.1) responde al instante. Probar desde el celular con datos móviles.
 - [ ] Editor del panel probado en navegador: no se pudo (el modo auto no deja crear un owner de prueba).
       Lo prueba Matías/Marcelo con el primer presupuesto real.
