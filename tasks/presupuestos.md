@@ -170,10 +170,13 @@ Ese patrón es: `requireAdmin` → `UUID_RE` → `getConversation(id, user)` par
 
 - [x] Paso 0: CRM pendiente commiteado aparte (`4475cd1`, local, sin push).
 - [x] `lib/presupuesto.ts`: cálculo verificado con Natalia ($3.607.500; etapas 935.500 / 472.000 / 1.300.000 / 900.000).
-- [x] `db/schema.sql`: tabla `presupuestos` + secuencia. **Falta aplicarla en Neon** (`npm run db:push`), el modo auto la bloquea.
+- [x] `db/schema.sql`: tabla `presupuestos` + secuencia, aplicada en Neon el 2026-10-28.
 - [x] PDF formal y preliminar (`components/pdf/`), revisados a ojo con Quick Look.
 - [x] API admin, tarjeta en la ficha, editor `/admin/presupuesto/{nuevo,[id]}`.
 - [x] Calculadora: formulario nombre + WhatsApp → `/api/presupuesto` → PDF.
 - [x] `tsc` y `npm run build` sin errores. `npm run lint` no corre: el repo nunca configuró ESLint.
-- [ ] Prueba de punta a punta en un preview de Vercel (después de `db:push`).
+- [x] Preview (`vercel curl`): validaciones 400, rutas admin 401 sin sesión, preliminar creado y PDF 200 con
+      precios recalculados en el servidor. En Vercel faltaban las fuentes de pdfkit (arreglado en `next.config.mjs`).
+- [ ] Probar en navegador el formulario de `/cocinas` y el editor del panel (necesita sesión de Matías en el preview).
+- [ ] Borrar el contacto "PRUEBA – borrar" y reiniciar `presupuesto_numero_seq` para que el primero real sea 2026-001.
 - [ ] Merge a main y deploy a prod.
