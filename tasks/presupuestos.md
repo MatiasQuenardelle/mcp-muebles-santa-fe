@@ -186,5 +186,7 @@ Ese patrón es: `requireAdmin` → `UUID_RE` → `getConversation(id, user)` par
       `fetchOptions: { cache: 'no-store' }` (`1c8fdca`); ahora da 404. Afectaba también al export CSV.
 - [ ] Desde la red de Matías, conectar a la IP de `www.mcpmuebles.com` (216.198.79.1) tarda ~15 s; la de
       `mcpmuebles.com` (64.29.17.1) responde al instante. Probar desde el celular con datos móviles.
-- [ ] Editor del panel probado en navegador: no se pudo (el modo auto no deja crear un owner de prueba).
-      Lo prueba Matías/Marcelo con el primer presupuesto real.
+- [x] Editor del panel probado en prod con la sesión de Matías (navegador integrado): alta de contacto →
+      presupuesto con los datos de Natalia ($3.607.500, mismas etapas que el Excel) → guardado N° 2026-001 →
+      PDF del panel 200 (la ruta pública da 404 para el formal) → "Marcar enviado" dejó monto, actividad y
+      estado Presupuestado. Vista 375 px sin scroll horizontal. Datos de prueba borrados y numeración en 2026-001.
