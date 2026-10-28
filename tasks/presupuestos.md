@@ -177,6 +177,9 @@ Ese patrón es: `requireAdmin` → `UUID_RE` → `getConversation(id, user)` par
 - [x] `tsc` y `npm run build` sin errores. `npm run lint` no corre: el repo nunca configuró ESLint.
 - [x] Preview (`vercel curl`): validaciones 400, rutas admin 401 sin sesión, preliminar creado y PDF 200 con
       precios recalculados en el servidor. En Vercel faltaban las fuentes de pdfkit (arreglado en `next.config.mjs`).
-- [ ] Probar en navegador el formulario de `/cocinas` y el editor del panel (necesita sesión de Matías en el preview).
-- [ ] Borrar el contacto "PRUEBA – borrar" y reiniciar `presupuesto_numero_seq` para que el primero real sea 2026-001.
-- [ ] Merge a main y deploy a prod.
+- [x] Merge a main, push y deploy a prod (2026-10-28, por la integración con Git).
+- [x] Prod verificado: páginas, redirect de /admin, validaciones 400, rutas admin 401, PDF 200 con no-store,
+      y el formulario de `/cocinas` en iPhone 13 (Playwright) sin scroll horizontal.
+- [x] Contacto de prueba borrado y `presupuesto_numero_seq` reiniciada: el primero real sale 2026-001.
+- [ ] Editor del panel probado en navegador: no se pudo (el modo auto no deja crear un owner de prueba).
+      Lo prueba Matías/Marcelo con el primer presupuesto real.
