@@ -8,11 +8,13 @@ import {
   LARGO_PASO,
   LINEAS,
   MODULOS,
+  NOTA_COLOCACION,
   PRECIOS_ACTUALIZADOS,
   precioModulo,
   type LineaId,
   type ModuloId,
 } from './data'
+import DescargaPdf from './DescargaPdf'
 import { Eyebrow, IconoWhatsApp, Titulo, formatearPesos } from './ui'
 
 /** Largo en cm. Se recuerda aunque el módulo no entre en el presupuesto. */
@@ -22,12 +24,6 @@ const SELECCION_INICIAL: Seleccion = {
   bajoMesada: { largo: 200, incluido: true },
   alacena: { largo: 160, incluido: true },
   mesada: { largo: 200, incluido: false },
-}
-
-const NOTA_COLOCACION: Record<LineaId, string> = {
-  economica: 'Sin colocación · entrega a domicilio',
-  estandar: 'Colocación a convenir, se cotiza aparte',
-  premium: 'Colocación profesional incluida',
 }
 
 const metros = (largo: number) => (largo / 100).toFixed(2)
@@ -280,6 +276,8 @@ export default function Calculadora() {
             <p className="mt-3 text-center text-[11.5px] text-brand-muted-dark">
               Te llega a Marcelo con el detalle ya escrito.
             </p>
+
+            <DescargaPdf linea={linea} seleccion={seleccion} disabled={items.length === 0} />
           </div>
         </div>
       </div>

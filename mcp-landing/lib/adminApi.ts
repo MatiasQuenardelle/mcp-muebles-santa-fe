@@ -35,3 +35,29 @@ export function postActivity(id: string, kind: string, body: string | null) {
 export function deleteActivityRequest(id: string, activityId: number) {
   return send('DELETE', `/api/admin/conversations/${id}/activities`, { activityId })
 }
+
+/** Crea un presupuesto formal. Devuelve el id nuevo, o el mensaje de error. */
+export async function createPresupuestoRequest(
+  conversationId: string,
+  data: unknown
+): Promise<{ id: string } | { error: string }> {
+  try {
+    const response = await fetch('/api/admin/presupuestos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId, data }),
+    })
+    const body = (await response.json().catch(() => ({}))) as { id?: string; error?: string }
+    return response.ok && body.id ? { id: body.id } : { error: body.error ?? 'No se pudo guardar.' }
+  } catch {
+    return { error: 'No se pudo conectar. Probá de nuevo.' }
+  }
+}
+
+export function patchPresupuesto(id: string, body: { data?: unknown; marcarEnviado?: boolean }) {
+  return send('PATCH', `/api/admin/presupuestos/${id}`, body)
+}
+
+export function deletePresupuestoRequest(id: string) {
+  return send('DELETE', `/api/admin/presupuestos/${id}`)
+}

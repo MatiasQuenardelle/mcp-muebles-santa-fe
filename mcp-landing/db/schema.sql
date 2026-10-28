@@ -185,3 +185,30 @@ alter table conversations add column if not exists assigned_to uuid references a
 create index if not exists conversations_assigned_idx
   on conversations (assigned_to)
   where assigned_to is not null;
+
+-- Presupuestos (2026-10-28). 'formal' lo arma el dueño desde la ficha del
+-- contacto (las cuatro fases de la planilla de Marcelo); 'preliminar' lo genera
+-- un visitante desde la calculadora de /cocinas. `data` es PresupuestoData o
+-- PreliminarData (lib/presupuesto.ts); `total` se guarda aparte para listar.
+create sequence if not exists presupuesto_numero_seq;
+
+create table if not exists presupuestos (
+  id               uuid          primary key,
+  conversation_id  uuid          not null references conversations(id) on delete cascade,
+  numero           text          not null,
+  kind             text          not null default 'formal' check (kind in ('formal', 'preliminar')),
+  data             jsonb         not null,
+  total            numeric(14,2) not null,
+  sent_at          timestamptz,
+  created_by       uuid          references admin_users(id) on delete set null,
+  created_at       timestamptz   not null default now(),
+  updated_at       timestamptz   not null default now()
+);
+
+create index if not exists presupuestos_conversation_idx
+  on presupuestos (conversation_id, created_at desc);
+
+-- Para copiar los precios del último presupuesto formal al armar uno nuevo.
+create index if not exists presupuestos_formal_recent_idx
+  on presupuestos (created_at desc)
+  where kind = 'formal';

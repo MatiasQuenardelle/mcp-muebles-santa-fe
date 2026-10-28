@@ -27,10 +27,11 @@ export function isConversationStatus(value: unknown): value is ConversationStatu
   return CONVERSATION_STATUSES.includes(value as ConversationStatus)
 }
 
-// Por dónde llegó el contacto. 'chat' es el asistente de la web; el resto se
-// carga a mano desde el panel.
+// Por dónde llegó el contacto. 'chat' es el asistente de la web y 'calculadora'
+// el PDF de /cocinas; el resto se carga a mano desde el panel.
 export type LeadSource =
   | 'chat'
+  | 'calculadora'
   | 'whatsapp'
   | 'instagram'
   | 'facebook'
@@ -41,6 +42,7 @@ export type LeadSource =
 
 export const LEAD_SOURCES: LeadSource[] = [
   'chat',
+  'calculadora',
   'whatsapp',
   'instagram',
   'facebook',
@@ -50,11 +52,14 @@ export const LEAD_SOURCES: LeadSource[] = [
   'otro',
 ]
 
-// Los que se pueden elegir al cargar a mano: un "chat" sin conversación no existe.
-export const MANUAL_LEAD_SOURCES = LEAD_SOURCES.filter((source) => source !== 'chat')
+// Los que se pueden elegir al cargar a mano: los de la web entran solos.
+export const MANUAL_LEAD_SOURCES: LeadSource[] = LEAD_SOURCES.filter(
+  (source) => source !== 'chat' && source !== 'calculadora'
+)
 
 export const SOURCE_LABELS: Record<LeadSource, string> = {
   chat: 'Chat de la web',
+  calculadora: 'Calculadora web',
   whatsapp: 'WhatsApp',
   instagram: 'Instagram',
   facebook: 'Facebook',

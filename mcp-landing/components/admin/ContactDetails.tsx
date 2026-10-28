@@ -115,9 +115,10 @@ export default function ContactDetails({
     )
   }
 
-  // Un chat del asistente sigue siendo un chat aunque se editen sus datos; el
-  // origen solo se elige entre los canales manuales.
-  const sourceOptions = source === 'chat' ? LEAD_SOURCES : MANUAL_LEAD_SOURCES
+  // Un contacto que entró solo por la web (chat o calculadora) conserva su
+  // origen aunque se editen sus datos; el resto elige entre los canales manuales.
+  const fromWeb = !MANUAL_LEAD_SOURCES.includes(source)
+  const sourceOptions = fromWeb ? LEAD_SOURCES : MANUAL_LEAD_SOURCES
 
   return (
     <form onSubmit={handleSave} className="bg-white rounded-2xl border border-brand-gold/60 p-4">
@@ -146,7 +147,7 @@ export default function ContactDetails({
           <select
             value={form.source}
             onChange={(e) => set('source', e.target.value)}
-            disabled={source === 'chat'}
+            disabled={fromWeb}
             className="w-full rounded-xl border border-brand-border bg-white px-3 py-2.5 text-base disabled:opacity-60"
           >
             {sourceOptions.map((option) => (

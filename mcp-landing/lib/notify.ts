@@ -49,6 +49,7 @@ export async function notifyPhoneLead(input: {
   message: string | null
   page: string | null
   attribution: unknown
+  headline?: string
 }): Promise<void> {
   // El claim hace de lock: un solo aviso por conversación, aunque el visitante
   // recargue y el widget vuelva a postear el lead. Sin conversación (o sin base)
@@ -63,7 +64,7 @@ export async function notifyPhoneLead(input: {
     : `${SITE_URL}/admin`
 
   const text = [
-    '📞 Dejaron un teléfono en el chat de la web',
+    input.headline ?? '📞 Dejaron un teléfono en el chat de la web',
     input.name ? `Nombre: ${input.name}` : null,
     input.phone ? `Teléfono: ${input.phone}` : null,
     `Origen: ${getOriginLabel((input.attribution as Attribution | null) ?? null)}`,

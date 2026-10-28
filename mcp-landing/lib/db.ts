@@ -11,6 +11,13 @@ import {
   type ConversationStatus,
   type LeadSource,
 } from '@/lib/crm'
+import {
+  SECCIONES,
+  type Item,
+  type PreliminarData,
+  type PresupuestoData,
+  type SeccionId,
+} from '@/lib/presupuesto'
 
 export type { ContactCard, ConversationFilter, ConversationStatus }
 
@@ -777,4 +784,186 @@ export async function invalidateCard(conversationId: string): Promise<void> {
     set card_message_count = null, card_claimed_at = null
     where id = ${conversationId}::uuid
   `
+}
+
+// ---------------------------------------------------------------------------
+// Presupuestos
+// ---------------------------------------------------------------------------
+
+export type PresupuestoKind = 'formal' | 'preliminar'
+
+export interface PresupuestoRow {
+  id: string
+  conversation_id: string
+  numero: string
+  kind: PresupuestoKind
+  data: PresupuestoData | PreliminarData
+  total: number
+  sent_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PresupuestoFormalRow extends PresupuestoRow {
+  kind: 'formal'
+  data: PresupuestoData
+}
+
+const PRESUPUESTO_COLUMNS = `
+  id, conversation_id, numero, kind, data, total::float8 as total,
+  sent_at, created_at, updated_at
+`
+
+/** Crea el presupuesto con el próximo número ('2026-007'). Devuelve id y número. */
+export async function createPresupuesto(input: {
+  conversationId: string
+  kind: PresupuestoKind
+  data: PresupuestoData | PreliminarData
+  total: number
+  userId: string | null
+}): Promise<{ id: string; numero: string }> {
+  const sql = db()
+  const id = crypto.randomUUID()
+  const rows = (await sql`
+    insert into presupuestos (id, conversation_id, numero, kind, data, total, created_by)
+    values (
+      ${id}::uuid,
+      ${input.conversationId}::uuid,
+      to_char(now() at time zone 'America/Argentina/Buenos_Aires', 'YYYY') || '-' ||
+        lpad(nextval('presupuesto_numero_seq')::text, 3, '0'),
+      ${input.kind},
+      ${JSON.stringify(input.data)}::jsonb,
+      ${input.total},
+      ${input.userId}::uuid
+    )
+    returning numero
+  `) as Array<{ numero: string }>
+  return { id, numero: rows[0].numero }
+}
+
+export async function updatePresupuesto(
+  id: string,
+  data: PresupuestoData,
+  total: number
+): Promise<void> {
+  const sql = db()
+  await sql`
+    update presupuestos
+    set data = ${JSON.stringify(data)}::jsonb, total = ${total}, updated_at = now()
+    where id = ${id}::uuid and kind = 'formal'
+  `
+}
+
+/** Marca el presupuesto como enviado. Devuelve false si ya lo estaba. */
+export async function markPresupuestoSent(id: string): Promise<boolean> {
+  const sql = db()
+  const rows = (await sql`
+    update presupuestos set sent_at = now()
+    where id = ${id}::uuid and sent_at is null
+    returning id
+  `) as Array<{ id: string }>
+  return rows.length > 0
+}
+
+export async function getPresupuesto(id: string): Promise<PresupuestoRow | null> {
+  const sql = db()
+  const rows = (await sql.query(
+    `select ${PRESUPUESTO_COLUMNS} from presupuestos where id = $1::uuid`,
+    [id]
+  )) as unknown as PresupuestoRow[]
+  return rows[0] ?? null
+}
+
+export async function listPresupuestos(conversationId: string): Promise<PresupuestoRow[]> {
+  const sql = db()
+  const rows = (await sql.query(
+    `select ${PRESUPUESTO_COLUMNS} from presupuestos
+     where conversation_id = $1::uuid
+     order by created_at desc`,
+    [conversationId]
+  )) as unknown as PresupuestoRow[]
+  return rows
+}
+
+export async function deletePresupuesto(id: string): Promise<void> {
+  const sql = db()
+  await sql`delete from presupuestos where id = ${id}::uuid`
+}
+
+/**
+ * Renglones del último presupuesto formal, para arrancar uno nuevo con los
+ * precios que Marcelo usó la última vez. Null si todavía no hay ninguno.
+ */
+export async function lastFormalItems(): Promise<Record<SeccionId, Item[]> | null> {
+  const sql = db()
+  const rows = (await sql`
+    select data from presupuestos
+    where kind = 'formal'
+    order by created_at desc
+    limit 1
+  `) as Array<{ data: PresupuestoData }>
+  if (rows.length === 0) {
+    return null
+  }
+  const items = {} as Record<SeccionId, Item[]>
+  for (const { id } of SECCIONES) {
+    items[id] = rows[0].data.secciones.find((s) => s.id === id)?.items ?? []
+  }
+  return items
+}
+
+// ---------------------------------------------------------------------------
+// Leads de la calculadora de /cocinas
+// ---------------------------------------------------------------------------
+
+export const MAX_CALCULATOR_LEADS_PER_HOUR = 5
+
+export async function countRecentCalculatorLeads(ipHash: string): Promise<number> {
+  const sql = db()
+  const rows = (await sql`
+    select count(*)::int as total
+    from conversations
+    where ip_hash = ${ipHash}
+      and source = 'calculadora'
+      and started_at > now() - interval '1 hour'
+  `) as Array<{ total: number }>
+  return rows[0]?.total ?? 0
+}
+
+/**
+ * Alta de un visitante que pidió el PDF en la calculadora. A diferencia de
+ * createManualLead entra sin asignar y no leído, como un chat nuevo.
+ */
+export async function createCalculatorLead(input: {
+  name: string
+  phone: string
+  project: string
+  amount: number
+  page: string | null
+  attribution: Record<string, unknown> | null
+  userAgent: string | null
+  ipHash: string | null
+}): Promise<string> {
+  const sql = db()
+  const id = crypto.randomUUID()
+  await sql.transaction([
+    sql`
+      insert into conversations (
+        id, site_id, source, name, phone, project, amount, page, attribution,
+        user_agent, ip_hash, message_count, status_changed_at
+      )
+      values (
+        ${id}::uuid, ${SITE_ID}, 'calculadora', ${input.name}, ${input.phone},
+        ${input.project}, ${input.amount}, ${input.page},
+        ${input.attribution ? JSON.stringify(input.attribution) : null}::jsonb,
+        ${input.userAgent}, ${input.ipHash}, 0, now()
+      )
+    `,
+    sql`
+      insert into activities (conversation_id, kind, body)
+      values (${id}::uuid, 'alta', 'Descargó el presupuesto preliminar de la calculadora.')
+    `,
+  ])
+  await deleteDemoConversations()
+  return id
 }

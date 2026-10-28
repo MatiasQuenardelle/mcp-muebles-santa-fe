@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { InputError, parseEditableFields } from '@/lib/adminInput'
 import { requireAdmin } from '@/lib/session'
-import { isConversationStatus } from '@/lib/crm'
+import { MANUAL_LEAD_SOURCES, isConversationStatus } from '@/lib/crm'
 import { createManualLead } from '@/lib/db'
 
 // Alta manual: contactos que llegaron por fuera del chat de la web.
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   if (!fields.name) {
     return NextResponse.json({ error: 'Poné al menos el nombre.' }, { status: 400 })
   }
-  if (!fields.source || fields.source === 'chat') {
+  if (!fields.source || !MANUAL_LEAD_SOURCES.includes(fields.source)) {
     return NextResponse.json({ error: 'Elegí por dónde llegó.' }, { status: 400 })
   }
   const status = input.status === undefined ? 'nuevo' : input.status

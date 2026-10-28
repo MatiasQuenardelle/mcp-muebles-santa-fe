@@ -77,6 +77,30 @@ export function trackWhatsAppClick({
   }
 }
 
+// El visitante dejó nombre y WhatsApp para bajar el PDF de la calculadora: es
+// un lead con datos, así que cuenta como conversión igual que un clic a WhatsApp.
+// El lead en sí ya lo guarda /api/presupuesto, por eso no se postea a /api/lead.
+export function trackPresupuestoPdf(placement: string) {
+  if (typeof window === 'undefined') {
+    return
+  }
+  const attribution = getAttribution()
+  const leadPayload = {
+    method: 'presupuesto_pdf',
+    lead_type: 'presupuesto_pdf',
+    placement,
+    lead_source: attribution?.source ?? '(direct)',
+    lead_medium: attribution?.medium ?? '(none)',
+    lead_campaign: attribution?.campaign ?? '',
+    gclid: attribution?.gclid ?? '',
+  }
+  window.dataLayer?.push({ event: 'generate_lead', ...leadPayload })
+  window.gtag?.('event', 'generate_lead', leadPayload)
+  if (GOOGLE_ADS_SEND_TO) {
+    window.gtag?.('event', 'conversion', { send_to: GOOGLE_ADS_SEND_TO })
+  }
+}
+
 export function trackChatbotOpen({
   ctaLabel,
   placement,

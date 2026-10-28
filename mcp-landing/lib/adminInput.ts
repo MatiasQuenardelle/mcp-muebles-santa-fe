@@ -3,6 +3,7 @@
 
 import { isLeadSource } from '@/lib/crm'
 import type { EditableFields } from '@/lib/db'
+import { SECCIONES, type Item, type PresupuestoData } from '@/lib/presupuesto'
 
 export class InputError extends Error {}
 
@@ -85,4 +86,79 @@ export function parseEditableFields(input: Record<string, unknown>): EditableFie
   }
 
   return fields
+}
+
+// ---------------------------------------------------------------------------
+// Presupuestos
+// ---------------------------------------------------------------------------
+
+const MAX_ITEMS_POR_SECCION = 40
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function plain(value: unknown, max: number, field: string, required = false): string {
+  if (value === undefined || value === null) {
+    value = ''
+  }
+  if (typeof value !== 'string') {
+    throw new InputError(`Campo inválido: ${field}.`)
+  }
+  const trimmed = value.trim().slice(0, max)
+  if (required && !trimmed) {
+    throw new InputError(`Falta ${field}.`)
+  }
+  return trimmed
+}
+
+function numero(value: unknown, max: number, field: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > max) {
+    throw new InputError(`Número inválido en ${field}.`)
+  }
+  return Math.round(value * 100) / 100
+}
+
+/** Valida el presupuesto que manda el editor. Las cuatro fases salen siempre en orden. */
+export function parsePresupuestoData(value: unknown): PresupuestoData {
+  if (!isRecord(value) || !Array.isArray(value.secciones)) {
+    throw new InputError('Presupuesto inválido.')
+  }
+  const fecha = parseDate(value.fecha)
+  if (!fecha) {
+    throw new InputError('Falta la fecha.')
+  }
+  const validez = numero(value.validezDias, 365, 'validez')
+  const recibidas = value.secciones.filter(isRecord)
+
+  return {
+    cliente: plain(value.cliente, 120, 'el nombre del cliente', true),
+    localidad: plain(value.localidad, 120, 'localidad'),
+    proyecto: plain(value.proyecto, 200, 'proyecto'),
+    fecha,
+    validezDias: Math.round(validez),
+    entrega: plain(value.entrega, 120, 'término de entrega'),
+    garantia: plain(value.garantia, 60, 'garantía'),
+    secciones: SECCIONES.map(({ id, titulo }) => {
+      const items = recibidas.find((seccion) => seccion.id === id)?.items
+      if (items !== undefined && !Array.isArray(items)) {
+        throw new InputError(`Renglones inválidos en ${titulo}.`)
+      }
+      return {
+        id,
+        items: (items ?? [])
+          .slice(0, MAX_ITEMS_POR_SECCION)
+          .filter(isRecord)
+          .map(
+            (item): Item => ({
+              concepto: plain(item.concepto, 160, `un concepto de ${titulo}`),
+              cantidad: numero(item.cantidad, 1e6, titulo),
+              precio: numero(item.precio, 1e10, titulo),
+            })
+          )
+          // Un renglón sin concepto es uno que se agregó y quedó vacío.
+          .filter((item) => item.concepto !== ''),
+      }
+    }),
+  }
 }

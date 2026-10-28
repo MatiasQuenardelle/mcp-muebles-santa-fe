@@ -11,6 +11,7 @@ import ConversationList, { conversationHref } from '@/components/admin/Conversat
 import FilterChips from '@/components/admin/FilterChips'
 import FollowUpBox from '@/components/admin/FollowUpBox'
 import MarkRead from '@/components/admin/MarkRead'
+import PresupuestosBox from '@/components/admin/PresupuestosBox'
 import RegenerateCardButton from '@/components/admin/RegenerateCardButton'
 import SearchBox from '@/components/admin/SearchBox'
 import StatusDropdown from '@/components/admin/StatusDropdown'
@@ -32,6 +33,7 @@ import {
   isDatabaseConfigured,
   listActivities,
   listConversations,
+  listPresupuestos,
 } from '@/lib/db'
 import { listTeam } from '@/lib/session'
 
@@ -79,9 +81,13 @@ export default async function AdminPage({
     selectedId ? getConversation(selectedId, user) : Promise.resolve(null),
     isOwner ? listTeam() : Promise.resolve(null),
   ])
-  const [messages, activities] = conversation
-    ? await Promise.all([getMessages(conversation.id), listActivities(conversation.id)])
-    : [[], []]
+  const [messages, activities, presupuestos] = conversation
+    ? await Promise.all([
+        getMessages(conversation.id),
+        listActivities(conversation.id),
+        listPresupuestos(conversation.id),
+      ])
+    : [[], [], []]
 
   const card = conversation?.card ?? null
   const contact = conversation ? contactView(conversation) : null
@@ -309,6 +315,8 @@ export default async function AdminPage({
                 </details>
               ) : null}
 
+              <PresupuestosBox conversationId={conversation.id} presupuestos={presupuestos} />
+
               <ActivityLog id={conversation.id} activities={activities} />
 
               {isChat ? (
@@ -320,8 +328,8 @@ export default async function AdminPage({
                 </section>
               ) : (
                 <p className="text-[11px] text-brand-muted text-center">
-                  Cargado a mano el {formatDateTime(conversation.started_at)} ·{' '}
-                  {leadOrigin(conversation)}
+                  {conversation.source === 'calculadora' ? 'Llegó por la web' : 'Cargado a mano'} el{' '}
+                  {formatDateTime(conversation.started_at)} · {leadOrigin(conversation)}
                 </p>
               )}
             </div>

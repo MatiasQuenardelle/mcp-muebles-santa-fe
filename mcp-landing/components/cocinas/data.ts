@@ -37,6 +37,12 @@ const TABLA_PREMIUM: Tabla = {
   mesada: [489350, 543846, 593893, 646164, 697324],
 }
 
+export const NOTA_COLOCACION: Record<LineaId, string> = {
+  economica: 'Sin colocación · entrega a domicilio',
+  estandar: 'Colocación a convenir, se cotiza aparte',
+  premium: 'Colocación profesional incluida',
+}
+
 const DIFERENCIA_ECONOMICA_ML = PRECIO_ML_BAJO_MESADA.estandar - PRECIO_ML_BAJO_MESADA.economica
 
 export const MODULOS: {
