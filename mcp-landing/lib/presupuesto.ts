@@ -130,7 +130,7 @@ export const ALCANCE = [
   'No incluye mesada, pileta, grifería, electrodomésticos, instalaciones de agua, gas o electricidad, ni trabajos de albañilería, salvo que se indiquen expresamente en el presupuesto.',
 ]
 
-export const WHATSAPP_VISIBLE = '342 408-1534'
+export const WHATSAPP_VISIBLE = '342 569-6876'
 
 export const PASOS = [
   `Confirmás la propuesta por WhatsApp al ${WHATSAPP_VISIBLE} y coordinamos los últimos detalles del diseño.`,
