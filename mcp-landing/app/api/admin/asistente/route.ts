@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
-import { parsearMensajes, responderAsistente } from '@/lib/gestion/asistente'
+import {
+  TOPE_PREGUNTAS_MES,
+  consumirPregunta,
+  parsearMensajes,
+  responderAsistente,
+} from '@/lib/gestion/asistente'
 import { InputError } from '@/lib/gestion/entrada'
 import { requireOwner } from '@/lib/session'
 
@@ -20,6 +25,12 @@ export async function POST(request: Request) {
   const cuerpo = await request.json().catch(() => null)
   try {
     const mensajes = parsearMensajes(cuerpo)
+    if (!(await consumirPregunta())) {
+      return NextResponse.json(
+        { error: `Se llegó al tope de ${TOPE_PREGUNTAS_MES} preguntas de este mes. Se renueva el día 1.` },
+        { status: 429 }
+      )
+    }
     return NextResponse.json(await responderAsistente(mensajes, { fetch, viewer: user, apiKey }))
   } catch (error) {
     if (error instanceof InputError) {

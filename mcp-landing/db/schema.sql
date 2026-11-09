@@ -467,6 +467,12 @@ create table if not exists empresa_notas (
   actualizado_por uuid    references admin_users(id) on delete set null
 );
 
+-- Preguntas al asistente por mes ('2026-11'), para acotar el gasto en OpenAI.
+create table if not exists asistente_uso (
+  mes        text primary key,
+  preguntas  int  not null default 0
+);
+
 -- Datos iniciales. Los que el dueño puede renombrar solo se cargan si la tabla
 -- está vacía: si no, cada migración volvería a crear los nombres viejos.
 insert into cuentas (nombre, tipo)
