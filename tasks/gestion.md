@@ -8,7 +8,7 @@ Plan aprobado: obras, plata, compras, equipo, tablero y asistente IA sobre el pa
 - [x] Fase 1: los 6 módulos
 - [x] Fase 2: integración, preview y verificación (ver Revisión)
 - [x] Commit en la rama `gestion`
-- [ ] OK de Matías para migrar producción y desplegar
+- [x] Base de producción migrada y desplegado en mcpmuebles.com (2026-11-09)
 - [ ] Fase 3: carga inicial y guía para Marcelo
 - [ ] Fase 4: bot de WhatsApp → contactos (cuando el bot esté activo con el número nuevo)
 
