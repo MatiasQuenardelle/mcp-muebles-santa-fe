@@ -603,6 +603,22 @@ export async function deleteConversation(id: string): Promise<void> {
   await sql`delete from conversations where id = ${id}::uuid and site_id = ${SITE_ID}`
 }
 
+// Una venta ya tiene plata asociada: el contacto y su presupuesto dejan de poder
+// borrarse o editarse desde el CRM. Los cambios de contrato van por la obra.
+export async function contactoTieneObras(id: string): Promise<boolean> {
+  const sql = db()
+  const rows = await sql`select 1 from obras where conversation_id = ${id}::uuid limit 1`
+  return rows.length > 0
+}
+
+export async function presupuestoVendido(id: string): Promise<boolean> {
+  const sql = db()
+  const rows = await sql`
+    select 1 from obras where presupuesto_id = ${id}::uuid and cancelada_en is null limit 1
+  `
+  return rows.length > 0
+}
+
 export interface DashboardStats {
   sin_contactar: number
   seguimiento_hoy: number

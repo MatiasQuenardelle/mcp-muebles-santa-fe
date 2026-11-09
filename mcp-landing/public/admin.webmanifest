@@ -1,8 +1,8 @@
 {
   "name": "Panel MCP Muebles",
   "short_name": "Panel MCP",
-  "description": "CRM de contactos de MCP Muebles",
-  "start_url": "/admin",
+  "description": "Gestión de MCP Muebles",
+  "start_url": "/admin/inicio",
   "scope": "/admin",
   "display": "standalone",
   "background_color": "#F3F0E8",

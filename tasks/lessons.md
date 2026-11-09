@@ -57,3 +57,13 @@ hermana nueva fuera del repo, y los `Edit` fallaban con "File does not exist".
 
 **Regla:** usar siempre el path con el espacio final, entre comillas, y si un archivo
 "no existe" cuando debería, mirar `pwd | od -c` antes de seguir.
+
+## Poner precio desde lo que el cliente paga, no desde el mercado (2026-11-08)
+
+**Qué pasó:** propuse $190.000/mes + $1.000.000 de implementación con comparables de mercado,
+aunque Matías ya había dicho que a este cliente "es difícil sacarle plata". Respuesta: no va a
+pagar eso, el techo es $150.000/mes y quizá ni eso.
+
+**Regla:** en una propuesta comercial, preguntar o inferir primero el techo real de ese cliente.
+Si el valor de mercado no entra en ese techo, recortar el alcance hasta que las horas cierren,
+en vez de solo bajar el número.

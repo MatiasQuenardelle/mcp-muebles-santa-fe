@@ -3,9 +3,10 @@
 
 import { isLeadSource } from '@/lib/crm'
 import type { EditableFields } from '@/lib/db'
+import { InputError } from '@/lib/gestion/entrada'
 import { SECCIONES, type Item, type PresupuestoData } from '@/lib/presupuesto'
 
-export class InputError extends Error {}
+export { InputError }
 
 const TEXT_LIMITS = {
   name: 120,

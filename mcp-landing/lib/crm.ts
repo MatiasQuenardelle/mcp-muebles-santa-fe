@@ -82,8 +82,9 @@ export type ActivityKind =
   | 'estado'
   | 'alta'
   | 'asignacion'
+  | 'obra'
 
-// Las que se cargan a mano. 'estado', 'alta' y 'asignacion' las registra el sistema.
+// Las que se cargan a mano. 'estado', 'alta', 'asignacion' y 'obra' las registra el sistema.
 export const MANUAL_ACTIVITY_KINDS: ActivityKind[] = [
   'nota',
   'llamada',
@@ -101,6 +102,7 @@ export const ACTIVITY_LABELS: Record<ActivityKind, string> = {
   estado: 'Cambio de estado',
   alta: 'Contacto cargado',
   asignacion: 'Responsable',
+  obra: 'Obra',
 }
 
 export function isManualActivityKind(value: unknown): value is ActivityKind {

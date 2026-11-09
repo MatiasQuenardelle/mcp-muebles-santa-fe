@@ -5,6 +5,7 @@ import { generateCard } from '@/lib/card'
 import { isConversationStatus, type ConversationStatus } from '@/lib/crm'
 import {
   assignConversation,
+  contactoTieneObras,
   deleteConversation,
   getConversation,
   getMessages,
@@ -114,6 +115,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   }
 
   try {
+    if (await contactoTieneObras(params.id)) {
+      return NextResponse.json(
+        { error: 'Este contacto tiene una obra cargada. Primero hay que resolver la obra.' },
+        { status: 409 }
+      )
+    }
     await deleteConversation(params.id)
   } catch (error) {
     console.error('No se pudo borrar la conversación', error)

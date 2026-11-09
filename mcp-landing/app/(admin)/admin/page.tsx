@@ -11,6 +11,7 @@ import ConversationList, { conversationHref } from '@/components/admin/Conversat
 import FilterChips from '@/components/admin/FilterChips'
 import FollowUpBox from '@/components/admin/FollowUpBox'
 import MarkRead from '@/components/admin/MarkRead'
+import ObraDeContacto from '@/components/admin/obras/ObraDeContacto'
 import PresupuestosBox from '@/components/admin/PresupuestosBox'
 import RegenerateCardButton from '@/components/admin/RegenerateCardButton'
 import SearchBox from '@/components/admin/SearchBox'
@@ -314,6 +315,8 @@ export default async function AdminPage({
                   </div>
                 </details>
               ) : null}
+
+              <ObraDeContacto conversation={conversation} presupuestos={presupuestos} viewer={user} />
 
               <PresupuestosBox conversationId={conversation.id} presupuestos={presupuestos} />
 

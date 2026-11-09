@@ -16,6 +16,14 @@ export default async function AdminHeader({ title, subtitle }: { title: string; 
           <p className="text-xs text-brand-muted truncate">{subtitle}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {user?.role === 'owner' ? (
+            <Link
+              href="/admin/asistente"
+              className="rounded-full border border-brand-border bg-white text-brand-dark text-xs font-semibold px-3 py-1.5"
+            >
+              Preguntar
+            </Link>
+          ) : null}
           <Link
             href="/admin/nuevo"
             className="rounded-full bg-brand-dark text-brand-gold text-xs font-semibold px-3 py-1.5"
@@ -29,7 +37,7 @@ export default async function AdminHeader({ title, subtitle }: { title: string; 
           ) : null}
         </div>
       </header>
-      <AdminTabs />
+      <AdminTabs rol={user?.role ?? 'user'} />
     </>
   )
 }

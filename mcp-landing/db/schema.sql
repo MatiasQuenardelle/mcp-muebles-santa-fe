@@ -212,3 +212,313 @@ create index if not exists presupuestos_conversation_idx
 create index if not exists presupuestos_formal_recent_idx
   on presupuestos (created_at desc)
   where kind = 'formal';
+
+-- ---------------------------------------------------------------------------
+-- Gestión de la empresa (2026-11). Obras, plata, compras y equipo.
+--
+-- `movimientos` es el único libro de caja: un cobro, un pago a proveedor, una
+-- comisión o la luz de casa son filas de la misma tabla. Las reglas de cuánto se
+-- debe y cuánto se ganó están en lib/gestion/calculos.ts y una sola vez.
+--
+-- Los check van dentro del create table a propósito: `add constraint` no admite
+-- `if not exists` y este archivo se vuelve a aplicar en cada migración.
+-- ---------------------------------------------------------------------------
+
+-- Todas las personas de la empresa, tengan o no cuenta en el panel.
+create table if not exists personal (
+  id            uuid          primary key default gen_random_uuid(),
+  nombre        text          not null,
+  puesto        text,
+  telefono      text,
+  user_id       uuid          unique references admin_users(id) on delete set null,
+  comision_pct  numeric(5,2)  not null default 0 check (comision_pct between 0 and 100),
+  activo        boolean       not null default true,
+  created_at    timestamptz   not null default now()
+);
+
+create table if not exists proveedores (
+  id             uuid          primary key default gen_random_uuid(),
+  nombre         text          not null,
+  telefono       text,
+  cuit           text,
+  rubro          text,
+  -- Lo que ya se le debía el día que se empezó a usar el panel.
+  saldo_inicial  numeric(14,2) not null default 0,
+  activo         boolean       not null default true,
+  created_at     timestamptz   not null default now()
+);
+
+create table if not exists cuentas (
+  id             uuid          primary key default gen_random_uuid(),
+  nombre         text          not null unique,
+  tipo           text          not null check (tipo in ('efectivo', 'banco', 'billetera')),
+  saldo_inicial  numeric(14,2) not null default 0,
+  activa         boolean       not null default true,
+  created_at     timestamptz   not null default now()
+);
+
+-- `grupo` no se puede cambiar una vez creada: cambiarlo reescribiría la ganancia
+-- de los meses pasados. `clave` marca las categorías con reglas propias.
+create table if not exists categorias (
+  id          uuid        primary key default gen_random_uuid(),
+  nombre      text        not null,
+  grupo       text        not null check (grupo in ('ingreso', 'negocio', 'familia')),
+  clave       text        unique check (clave in (
+                'cobro_obra', 'devolucion_cliente', 'pago_proveedor', 'devolucion_proveedor', 'comision'
+              )),
+  activa      boolean     not null default true,
+  created_at  timestamptz not null default now(),
+  unique (grupo, nombre)
+);
+
+create table if not exists gastos_fijos (
+  id            uuid          primary key default gen_random_uuid(),
+  nombre        text          not null,
+  categoria_id  uuid          not null references categorias(id) on delete restrict,
+  monto         numeric(14,2) not null check (monto > 0),
+  frecuencia    text          not null check (frecuencia in ('semanal', 'mensual')),
+  activo        boolean       not null default true,
+  created_at    timestamptz   not null default now()
+);
+
+create sequence if not exists obra_numero_seq;
+
+create table if not exists obras (
+  id               uuid          primary key default gen_random_uuid(),
+  numero           text          not null unique,
+  conversation_id  uuid          references conversations(id) on delete set null,
+  presupuesto_id   uuid          references presupuestos(id) on delete set null,
+  -- Copias: la obra sigue teniendo cliente aunque se borre el contacto.
+  cliente          text          not null,
+  telefono         text,
+  titulo           text          not null,
+  zona             text,
+  etapa            text          not null default 'medicion' check (etapa in (
+                     'medicion', 'diseno', 'materiales', 'corte', 'armado', 'colocacion'
+                   )),
+  -- Contrato original. Nunca se pisa: los cambios van a obra_ajustes.
+  total            numeric(14,2) not null check (total >= 0),
+  -- Lo cobrado antes de empezar a usar el panel.
+  cobrado_inicial  numeric(14,2) not null default 0 check (cobrado_inicial >= 0),
+  fecha_venta      date          not null,
+  fecha_entrega    date,
+  entregada_en     date,
+  cancelada_en     date,
+  vendedor_id      uuid          references personal(id) on delete set null,
+  comision_pct     numeric(5,2)  not null default 0 check (comision_pct between 0 and 100),
+  notas            text,
+  creado_por       uuid          references admin_users(id) on delete set null,
+  created_at       timestamptz   not null default now(),
+  updated_at       timestamptz   not null default now()
+);
+
+-- Un presupuesto se vende una sola vez, salvo que esa venta se haya caído.
+create unique index if not exists obras_presupuesto_uq
+  on obras (presupuesto_id)
+  where presupuesto_id is not null and cancelada_en is null;
+
+create index if not exists obras_conversation_idx
+  on obras (conversation_id)
+  where conversation_id is not null;
+
+create index if not exists obras_en_curso_idx
+  on obras (fecha_entrega)
+  where entregada_en is null and cancelada_en is null;
+
+-- Adicionales y descuentos después de la venta, con su fecha y su motivo.
+create table if not exists obra_ajustes (
+  id          uuid          primary key default gen_random_uuid(),
+  obra_id     uuid          not null references obras(id) on delete cascade,
+  fecha       date          not null,
+  monto       numeric(14,2) not null check (monto <> 0),
+  motivo      text          not null,
+  creado_por  uuid          references admin_users(id) on delete set null,
+  created_at  timestamptz   not null default now()
+);
+
+create index if not exists obra_ajustes_obra_idx on obra_ajustes (obra_id);
+
+-- Plan de pagos congelado al vender. Solo para mostrar: lo que se debe de verdad
+-- sale de totalVigente - cobradoNeto (lib/gestion/calculos.ts).
+create table if not exists obra_cuotas (
+  id              uuid          primary key default gen_random_uuid(),
+  obra_id         uuid          not null references obras(id) on delete cascade,
+  orden           int           not null,
+  concepto        text          not null,
+  monto           numeric(14,2) not null check (monto >= 0),
+  -- A partir de qué etapa se le puede reclamar al cliente. Null = desde el inicio.
+  etapa_exigible  text          check (etapa_exigible in (
+                    'medicion', 'diseno', 'materiales', 'corte', 'armado', 'colocacion'
+                  )),
+  unique (obra_id, orden)
+);
+
+create table if not exists obra_eventos (
+  id               uuid        primary key default gen_random_uuid(),
+  obra_id          uuid        not null references obras(id) on delete cascade,
+  etapa_anterior   text,
+  etapa            text        not null,
+  nota             text,
+  user_id          uuid        references admin_users(id) on delete set null,
+  created_at       timestamptz not null default now()
+);
+
+create index if not exists obra_eventos_obra_idx on obra_eventos (obra_id, created_at desc);
+
+create table if not exists compras (
+  id            uuid        primary key default gen_random_uuid(),
+  proveedor_id  uuid        not null references proveedores(id) on delete restrict,
+  fecha         date        not null,
+  comprobante   text,
+  estado        text        not null default 'pedido' check (estado in ('pedido', 'recibido', 'cancelado')),
+  recibida_en   date,
+  vence_el      date,
+  nota          text,
+  creado_por    uuid        references admin_users(id) on delete set null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists compras_proveedor_idx on compras (proveedor_id, fecha);
+
+-- La obra va por renglón: diez placas pueden repartirse entre dos cocinas.
+create table if not exists compra_items (
+  id           uuid          primary key default gen_random_uuid(),
+  compra_id    uuid          not null references compras(id) on delete cascade,
+  descripcion  text          not null,
+  cantidad     numeric(12,3) not null check (cantidad > 0),
+  precio       numeric(14,2) not null check (precio >= 0),
+  obra_id      uuid          references obras(id) on delete restrict
+);
+
+create index if not exists compra_items_compra_idx on compra_items (compra_id);
+create index if not exists compra_items_obra_idx on compra_items (obra_id) where obra_id is not null;
+
+create table if not exists movimientos (
+  -- Lo genera el navegador: si el usuario toca dos veces, entra una sola fila.
+  id                 uuid          primary key,
+  fecha              date          not null,
+  tipo               text          not null check (tipo in ('ingreso', 'egreso', 'transferencia')),
+  monto              numeric(14,2) not null check (monto > 0),
+  cuenta_id          uuid          not null references cuentas(id) on delete restrict,
+  cuenta_destino_id  uuid          references cuentas(id) on delete restrict,
+  categoria_id       uuid          references categorias(id) on delete restrict,
+  -- Copia de categorias.grupo al momento de cargar.
+  grupo              text          check (grupo in ('ingreso', 'negocio', 'familia')),
+  obra_id            uuid          references obras(id) on delete restrict,
+  proveedor_id       uuid          references proveedores(id) on delete restrict,
+  personal_id        uuid          references personal(id) on delete restrict,
+  gasto_fijo_id      uuid          references gastos_fijos(id) on delete set null,
+  periodo            text,
+  nota               text,
+  creado_por         uuid          references admin_users(id) on delete set null,
+  created_at         timestamptz   not null default now(),
+  -- El libro no se edita ni se borra: corregir es anular y cargar de nuevo.
+  anulado_en         timestamptz,
+  anulado_por        uuid          references admin_users(id) on delete set null,
+  anulado_motivo     text,
+  check ((tipo = 'transferencia') = (cuenta_destino_id is not null)),
+  check (cuenta_destino_id is null or cuenta_destino_id <> cuenta_id),
+  check (
+    (tipo = 'transferencia'
+      and categoria_id is null and grupo is null
+      and obra_id is null and proveedor_id is null and personal_id is null)
+    or (tipo <> 'transferencia' and categoria_id is not null and grupo is not null)
+  ),
+  check (proveedor_id is null or obra_id is null),
+  check (grupo is distinct from 'familia' or (obra_id is null and proveedor_id is null and personal_id is null)),
+  check ((anulado_en is null) = (anulado_motivo is null))
+);
+
+create index if not exists movimientos_fecha_idx on movimientos (fecha desc);
+create index if not exists movimientos_obra_idx on movimientos (obra_id) where obra_id is not null;
+create index if not exists movimientos_proveedor_idx on movimientos (proveedor_id) where proveedor_id is not null;
+create index if not exists movimientos_personal_idx on movimientos (personal_id) where personal_id is not null;
+
+-- Parcial: un gasto fijo anulado se puede volver a generar para ese período.
+create unique index if not exists movimientos_gasto_fijo_uq
+  on movimientos (gasto_fijo_id, periodo)
+  where anulado_en is null and gasto_fijo_id is not null;
+
+-- Todo reporte lee de acá, nunca de la tabla: así un anulado no se cuela en una suma.
+create or replace view movimientos_vigentes as
+  select * from movimientos where anulado_en is null;
+
+create table if not exists tareas (
+  id           uuid        primary key default gen_random_uuid(),
+  titulo       text        not null,
+  detalle      text,
+  personal_id  uuid        references personal(id) on delete set null,
+  obra_id      uuid        references obras(id) on delete set null,
+  vence_el     date,
+  hecha_en     timestamptz,
+  creado_por   uuid        references admin_users(id) on delete set null,
+  created_at   timestamptz not null default now()
+);
+
+create index if not exists tareas_personal_idx on tareas (personal_id) where hecha_en is null;
+
+-- Datos de la empresa (CUIT, seguros, contactos útiles). Nunca contraseñas.
+create table if not exists empresa_notas (
+  id          uuid        primary key default gen_random_uuid(),
+  titulo      text        not null,
+  contenido   text        not null,
+  updated_at  timestamptz not null default now(),
+  actualizado_por uuid    references admin_users(id) on delete set null
+);
+
+-- Datos iniciales. Los que el dueño puede renombrar solo se cargan si la tabla
+-- está vacía: si no, cada migración volvería a crear los nombres viejos.
+insert into cuentas (nombre, tipo)
+select v.nombre, v.tipo
+from (values ('Efectivo', 'efectivo'), ('Banco', 'banco'), ('Mercado Pago', 'billetera')) as v(nombre, tipo)
+where not exists (select 1 from cuentas);
+
+insert into categorias (nombre, grupo, clave) values
+  ('Cobro de obra', 'ingreso', 'cobro_obra'),
+  ('Devolución a cliente', 'ingreso', 'devolucion_cliente'),
+  ('Pago a proveedor', 'negocio', 'pago_proveedor'),
+  ('Devolución de proveedor', 'negocio', 'devolucion_proveedor'),
+  ('Comisiones', 'negocio', 'comision')
+on conflict do nothing;
+
+insert into categorias (nombre, grupo)
+select v.nombre, v.grupo
+from (values
+  ('Otros ingresos', 'ingreso'),
+  ('Alquiler', 'negocio'),
+  ('Luz del taller', 'negocio'),
+  ('Celular', 'negocio'),
+  ('Comida', 'negocio'),
+  ('Viáticos', 'negocio'),
+  ('Nubera', 'negocio'),
+  ('Sueldos y adelantos', 'negocio'),
+  ('Flete', 'negocio'),
+  ('Mano de obra de terceros', 'negocio'),
+  ('Otros gastos', 'negocio'),
+  ('Envío diario', 'familia'),
+  ('Luz de casa', 'familia'),
+  ('Gas', 'familia'),
+  ('Wifi', 'familia'),
+  ('Otros gastos de la familia', 'familia')
+) as v(nombre, grupo)
+where not exists (select 1 from categorias where clave is null);
+
+-- Montos de la planilla del taller. La frecuencia se confirma con Marcelo y se
+-- corrige desde el panel; cada uno se revisa antes de generarlo.
+insert into gastos_fijos (nombre, categoria_id, monto, frecuencia)
+select v.nombre, c.id, v.monto, v.frecuencia
+from (values
+  ('Alquiler', 'negocio', 350000::numeric, 'mensual'),
+  ('Luz del taller', 'negocio', 50000::numeric, 'mensual'),
+  ('Celular', 'negocio', 65000::numeric, 'mensual'),
+  ('Comida', 'negocio', 200000::numeric, 'semanal'),
+  ('Viáticos', 'negocio', 140000::numeric, 'semanal'),
+  ('Nubera', 'negocio', 35000::numeric, 'mensual'),
+  ('Envío diario', 'familia', 105000::numeric, 'semanal'),
+  ('Luz de casa', 'familia', 25000::numeric, 'mensual'),
+  ('Gas', 'familia', 25000::numeric, 'mensual'),
+  ('Wifi', 'familia', 25000::numeric, 'mensual')
+) as v(nombre, grupo, monto, frecuencia)
+join categorias c on c.nombre = v.nombre and c.grupo = v.grupo
+where not exists (select 1 from gastos_fijos);

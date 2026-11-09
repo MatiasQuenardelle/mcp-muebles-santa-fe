@@ -21,6 +21,7 @@ const ICONS: Record<ActivityKind, string> = {
   estado: '→',
   alta: '+',
   asignacion: '◉',
+  obra: '▣',
 }
 
 const PLACEHOLDERS: Record<string, string> = {

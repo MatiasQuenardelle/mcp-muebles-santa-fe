@@ -6,6 +6,7 @@ import {
   getConversation,
   getPresupuesto,
   markPresupuestoSent,
+  presupuestoVendido,
   updateConversation,
   updatePresupuesto,
   type PresupuestoRow,
@@ -14,6 +15,7 @@ import { calcular, pesos } from '@/lib/presupuesto'
 import { requireAdmin, type AdminUser } from '@/lib/session'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const VENDIDO = 'Este presupuesto ya es una obra. Los cambios de precio se cargan desde la obra.'
 
 // El presupuesto existe y su contacto es visible para este usuario.
 async function findVisible(id: string, user: AdminUser): Promise<PresupuestoRow | null> {
@@ -49,6 +51,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       if (row.kind !== 'formal') {
         return NextResponse.json({ error: 'El preliminar no se edita.' }, { status: 400 })
       }
+      if (await presupuestoVendido(row.id)) {
+        return NextResponse.json({ error: VENDIDO }, { status: 409 })
+      }
       const data = parsePresupuestoData(body.data)
       total = calcular(data).total
       await updatePresupuesto(row.id, data, total)
@@ -77,6 +82,9 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return NextResponse.json({ error: 'No se encontró ese presupuesto.' }, { status: 404 })
   }
   try {
+    if (await presupuestoVendido(row.id)) {
+      return NextResponse.json({ error: VENDIDO }, { status: 409 })
+    }
     await deletePresupuesto(row.id)
   } catch (error) {
     console.error('No se pudo borrar el presupuesto', error)

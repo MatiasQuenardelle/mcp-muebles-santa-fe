@@ -1,7 +1,9 @@
 // Client-side: llamadas del panel a /api/admin/*. Devuelven el mensaje de error
 // del server (o uno genérico) para mostrarlo tal cual, o null si salió bien.
 
-async function send(method: string, url: string, body?: unknown): Promise<string | null> {
+import type { MovimientoNuevo } from '@/lib/gestion/tipos'
+
+export async function send(method: string, url: string, body?: unknown): Promise<string | null> {
   try {
     const response = await fetch(url, {
       method,
@@ -60,4 +62,12 @@ export function patchPresupuesto(id: string, body: { data?: unknown; marcarEnvia
 
 export function deletePresupuestoRequest(id: string) {
   return send('DELETE', `/api/admin/presupuestos/${id}`)
+}
+
+export function crearMovimientoRequest(movimiento: MovimientoNuevo) {
+  return send('POST', '/api/admin/gestion/movimientos', movimiento)
+}
+
+export function anularMovimientoRequest(id: string, motivo: string) {
+  return send('DELETE', `/api/admin/gestion/movimientos/${id}`, { motivo })
 }
