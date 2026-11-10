@@ -7,6 +7,7 @@ import Footer from '@/components/cocinas/Footer'
 import Hero from '@/components/cocinas/Hero'
 import Lineas from '@/components/cocinas/Lineas'
 import Mesadas from '@/components/cocinas/Mesadas'
+import Materiales from '@/components/Materiales'
 import Nav from '@/components/cocinas/Nav'
 import Opiniones from '@/components/cocinas/Opiniones'
 import PorQue from '@/components/cocinas/PorQue'
@@ -96,6 +97,7 @@ export default function CocinasPage() {
         <Mesadas />
         <Proceso />
         <PorQue />
+        <Materiales />
         <Opiniones />
         <Editorial />
         <Preguntas />

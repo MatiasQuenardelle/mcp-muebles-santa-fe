@@ -1,6 +1,7 @@
 import TopBar from '@/components/TopBar'
 import Hero from '@/components/Hero'
 import WhatIsIncluded from '@/components/WhatIsIncluded'
+import Materiales from '@/components/Materiales'
 import UrgencyBanner from '@/components/UrgencyBanner'
 import WhyMCP from '@/components/WhyMCP'
 import HowItWorks from '@/components/HowItWorks'
@@ -23,6 +24,7 @@ export default function Home() {
       <main className="pb-24 md:pb-0">
         <Hero />
         <WhatIsIncluded />
+        <Materiales />
         <UrgencyBanner />
         <WhyMCP />
         <HowItWorks />

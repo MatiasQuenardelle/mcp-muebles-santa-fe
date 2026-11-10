@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import TopBar from '@/components/TopBar'
 import ProyectoHero from '@/components/proyecto/ProyectoHero'
 import GuiaCompra from '@/components/proyecto/GuiaCompra'
+import Materiales from '@/components/Materiales'
 import ProyectoGaleria from '@/components/proyecto/ProyectoGaleria'
 import PreciosReferencia from '@/components/proyecto/PreciosReferencia'
 import ProyectoFAQ from '@/components/proyecto/ProyectoFAQ'
@@ -40,6 +41,7 @@ export default function ProyectoCocina() {
       <main>
         <ProyectoHero />
         <GuiaCompra />
+        <Materiales />
         <ProyectoGaleria />
         <PreciosReferencia />
         <ProyectoFAQ />
