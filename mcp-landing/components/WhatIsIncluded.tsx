@@ -5,7 +5,7 @@ import { PROVEEDORES } from '@/lib/constants'
 const items: { text: string; badge?: string; href?: string }[] = [
   { text: 'Bajo mesada de melamina EGGER a medida', badge: 'EGGER', href: PROVEEDORES.egger.url },
   { text: 'Mesada de granito natural cortada, pulida, con z\u00f3calos y colocaci\u00f3n' },
-  { text: 'Bacha Johnson Z52 conectada y funcionando el mismo d\u00eda', badge: 'JOHNSON' },
+  { text: 'Bacha Johnson Z52 conectada y funcionando el mismo d\u00eda', badge: 'JOHNSON', href: PROVEEDORES.johnson.url },
   { text: 'Herrajes de primera l\u00ednea con correderas telesc\u00f3picas', badge: 'GRUPO EURO', href: PROVEEDORES.grupoEuro.url },
   { text: 'Manijas tiradores de aluminio en distintos colores' },
   { text: 'Dise\u00f1o previo en 3D para que veas c\u00f3mo queda' },

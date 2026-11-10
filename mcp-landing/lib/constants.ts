@@ -89,7 +89,8 @@ export function buildWhatsAppUrl({
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
 }
 
-// Proveedores que Marcelo quiere enlazados desde la web: placas Egger, herrajes Grupo Euro.
+// Proveedores que Marcelo quiere enlazados desde la web: placas Egger, herrajes Grupo Euro,
+// piletas Johnson.
 export const PROVEEDORES = {
   egger: {
     url: 'https://www.egger.com/es/mobiliario-e-interiorismo/?country=AR',
@@ -98,5 +99,9 @@ export const PROVEEDORES = {
   grupoEuro: {
     url: 'https://grupoeurosa.com/ar',
     cta: 'Ver los herrajes de Grupo Euro',
+  },
+  johnson: {
+    url: 'https://piletas.johnsonacero.com/catalogo/',
+    cta: 'Ver las piletas de Johnson',
   },
 } as const
