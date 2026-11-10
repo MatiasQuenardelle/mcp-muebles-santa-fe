@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { PROVEEDORES } from '@/lib/constants'
 
 const steps = [
   {
@@ -23,7 +24,7 @@ const steps = [
   },
 ]
 
-const materiales = [
+const materiales: { title: string; desc: string; link?: { url: string; cta: string } }[] = [
   {
     title: 'Precisión total',
     desc: 'Cada mueble se fabrica con tus medidas exactas. Sin espacios, sin rellenos.',
@@ -31,10 +32,12 @@ const materiales = [
   {
     title: 'Melamina Egger',
     desc: 'Tablero importado, el mismo que usan las mejores cocinas del mercado.',
+    link: PROVEEDORES.egger,
   },
   {
     title: 'Herrajes Grupo Euro',
     desc: 'Correderas telescópicas de extensión total. Cierran suave, duran décadas.',
+    link: PROVEEDORES.grupoEuro,
   },
   {
     title: 'Manijas de aluminio',
@@ -155,6 +158,16 @@ export default function GuiaCompra() {
               >
                 <h3 className="font-bold mb-2">{item.title}</h3>
                 <p className="text-sm text-brand-muted leading-relaxed">{item.desc}</p>
+                {item.link && (
+                  <a
+                    href={item.link.url}
+                    target="_blank"
+                    rel="noopener"
+                    className="mt-3 inline-block text-sm font-semibold text-brand-gold underline-offset-4 hover:underline"
+                  >
+                    {item.link.cta} &rarr;
+                  </a>
+                )}
               </div>
             ))}
           </div>

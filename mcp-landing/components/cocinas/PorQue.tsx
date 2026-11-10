@@ -26,6 +26,16 @@ export default function PorQue() {
               <div className="min-w-0 border-t border-white/10 pt-6">
                 <h3 className="font-display text-[20px] font-semibold text-white">{d.titulo}</h3>
                 <p className="mt-2.5 text-[13.5px] leading-relaxed text-white/55">{d.texto}</p>
+                {d.link && (
+                  <a
+                    href={d.link.url}
+                    target="_blank"
+                    rel="noopener"
+                    className="mt-3 inline-block text-[13px] font-semibold text-brand-gold underline-offset-4 hover:underline"
+                  >
+                    {d.link.cta} &rarr;
+                  </a>
+                )}
               </div>
             </Reveal>
           ))}

@@ -1,11 +1,12 @@
 import Image from 'next/image'
 import WhatsAppButton from './WhatsAppButton'
+import { PROVEEDORES } from '@/lib/constants'
 
-const items = [
-  { text: 'Bajo mesada de melamina EGGER a medida', badge: 'EGGER' },
+const items: { text: string; badge?: string; href?: string }[] = [
+  { text: 'Bajo mesada de melamina EGGER a medida', badge: 'EGGER', href: PROVEEDORES.egger.url },
   { text: 'Mesada de granito natural cortada, pulida, con z\u00f3calos y colocaci\u00f3n' },
   { text: 'Bacha Johnson Z52 conectada y funcionando el mismo d\u00eda', badge: 'JOHNSON' },
-  { text: 'Herrajes de primera l\u00ednea con correderas telesc\u00f3picas', badge: 'GRUPO EURO' },
+  { text: 'Herrajes de primera l\u00ednea con correderas telesc\u00f3picas', badge: 'GRUPO EURO', href: PROVEEDORES.grupoEuro.url },
   { text: 'Manijas tiradores de aluminio en distintos colores' },
   { text: 'Dise\u00f1o previo en 3D para que veas c\u00f3mo queda' },
   { text: 'Medici\u00f3n en obra incluida, sin costo adicional' },
@@ -41,7 +42,18 @@ export default function WhatIsIncluded() {
                 </svg>
                 <span className="text-sm leading-relaxed">
                   {item.text}
-                  {item.badge && (
+                  {item.badge && item.href && (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener"
+                      title={`Ver ${item.badge} en su sitio oficial`}
+                      className="ml-2 whitespace-nowrap text-[11px] font-bold bg-brand-gold/10 text-brand-gold px-2 py-0.5 rounded-full underline-offset-2 hover:underline hover:bg-brand-gold/20"
+                    >
+                      {item.badge} &#8599;
+                    </a>
+                  )}
+                  {item.badge && !item.href && (
                     <span className="ml-2 text-[11px] font-bold bg-brand-gold/10 text-brand-gold px-2 py-0.5 rounded-full">
                       {item.badge}
                     </span>

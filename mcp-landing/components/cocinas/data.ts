@@ -3,6 +3,8 @@
 //
 // Fuente de precios: lista oficial de MCP (lista-de-precios-mcpmuebles).
 // REVISAR: confirmar con Marcelo la vigencia antes de publicar.
+import { PROVEEDORES } from '@/lib/constants'
+
 export const PRECIOS_ACTUALIZADOS = 'agosto 2026'
 
 // Largos de la lista oficial, en cm. La calculadora cotiza cada 10 cm entre
@@ -185,7 +187,7 @@ export const PROCESO = [
   },
 ]
 
-export const DIFERENCIALES = [
+export const DIFERENCIALES: { titulo: string; texto: string; link?: { url: string; cta: string } }[] = [
   {
     titulo: 'Medida exacta',
     texto:
@@ -195,11 +197,13 @@ export const DIFERENCIALES = [
     titulo: 'MDF y melamina Egger',
     texto:
       'Tablero importado, el mismo que usan las cocinas de alta gama. Cantos termofusionados que no se despegan con el vapor.',
+    link: PROVEEDORES.egger,
   },
   {
     titulo: 'Herrajes Grupo Euro',
     texto:
       'Correderas telescópicas de extracción total. Abren entero, cierran suave y aguantan el uso diario de una familia.',
+    link: PROVEEDORES.grupoEuro,
   },
   {
     titulo: 'Manijas de aluminio',
