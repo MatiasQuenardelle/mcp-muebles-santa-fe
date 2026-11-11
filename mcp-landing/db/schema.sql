@@ -528,3 +528,42 @@ from (values
 ) as v(nombre, grupo, monto, frecuencia)
 join categorias c on c.nombre = v.nombre and c.grupo = v.grupo
 where not exists (select 1 from gastos_fijos);
+
+-- WhatsApp por Kapso (2026-11-09). Un contacto de WhatsApp es una fila de
+-- conversations con wa_phone: el número tal como lo manda WhatsApp, solo dígitos.
+--   role 'human': lo escribió una persona, desde el panel o desde la app.
+alter table messages drop constraint if exists messages_role_check;
+alter table messages add constraint messages_role_check
+  check (role in ('user', 'assistant', 'human'));
+alter table messages add column if not exists wa_message_id text;
+-- sent | delivered | read | failed. Null en los mensajes del chat de la web.
+alter table messages add column if not exists status text;
+alter table messages add column if not exists message_type text;
+create unique index if not exists messages_wa_message_idx
+  on messages (wa_message_id) where wa_message_id is not null;
+
+alter table conversations add column if not exists wa_phone text;
+-- Null = usa el modo general de whatsapp_config.
+alter table conversations add column if not exists ai_mode_override text
+  check (ai_mode_override in ('OFF', 'SUGGEST', 'AUTO'));
+-- Abre la ventana de 24 h de WhatsApp para escribirle sin plantilla.
+alter table conversations add column if not exists last_inbound_at timestamptz;
+create unique index if not exists conversations_wa_phone_idx
+  on conversations (site_id, wa_phone) where wa_phone is not null;
+
+-- Una fila por sitio. Los ids los carga db/kapso-setup.mjs al conectar el número.
+create table if not exists whatsapp_config (
+  site_id         text primary key,
+  mode            text not null default 'SUGGEST' check (mode in ('OFF', 'SUGGEST', 'AUTO')),
+  phone_number_id text,
+  workflow_id     text,
+  updated_at      timestamptz not null default now()
+);
+insert into whatsapp_config (site_id) values ('mcp') on conflict (site_id) do nothing;
+
+-- Kapso entrega cada evento al menos una vez: acá se descartan los repetidos.
+create table if not exists whatsapp_webhook_events (
+  id          text primary key,
+  event       text,
+  received_at timestamptz not null default now()
+);

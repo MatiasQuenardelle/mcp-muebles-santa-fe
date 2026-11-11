@@ -1,16 +1,19 @@
 import AdminHeader from '@/components/admin/AdminHeader'
+import BotGeneral from '@/components/admin/whatsapp/BotGeneral'
 import { formatDateTime, formatRelative, originLabel } from '@/lib/adminFormat'
 import { requireAdminPage } from '@/lib/adminSession'
 import { isDatabaseConfigured, listWhatsAppClicks } from '@/lib/db'
+import { leerConfig } from '@/lib/whatsapp/db'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'WhatsApp · Panel MCP' }
 
 export default async function WhatsAppPage() {
-  await requireAdminPage()
+  const user = await requireAdminPage()
 
   const clicks = isDatabaseConfigured() ? await listWhatsAppClicks() : []
+  const bot = user.role === 'owner' && isDatabaseConfigured() ? await leerConfig() : null
 
   return (
     <main className="px-4 py-6 sm:px-6 max-w-3xl mx-auto">
@@ -18,6 +21,8 @@ export default async function WhatsAppPage() {
         title="Clics a WhatsApp"
         subtitle="Quién tocó un botón de WhatsApp en la web y de dónde venía"
       />
+
+      {bot ? <BotGeneral mode={bot.mode} conectado={Boolean(bot.phone_number_id)} /> : null}
 
       {clicks.length === 0 ? (
         <p className="text-sm text-brand-muted text-center py-12">

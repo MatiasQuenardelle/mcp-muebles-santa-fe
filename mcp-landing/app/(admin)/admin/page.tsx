@@ -17,6 +17,9 @@ import RegenerateCardButton from '@/components/admin/RegenerateCardButton'
 import SearchBox from '@/components/admin/SearchBox'
 import StatusDropdown from '@/components/admin/StatusDropdown'
 import Thread from '@/components/admin/Thread'
+import BotContacto from '@/components/admin/whatsapp/BotContacto'
+import Composer from '@/components/admin/whatsapp/Composer'
+import Pulso from '@/components/admin/whatsapp/Pulso'
 import {
   TEMPERATURE_LABELS,
   TEMPERATURE_STYLES,
@@ -37,6 +40,8 @@ import {
   listPresupuestos,
 } from '@/lib/db'
 import { listTeam } from '@/lib/session'
+import { leerConfig } from '@/lib/whatsapp/db'
+import { ventanaAbierta } from '@/lib/whatsapp/modo'
 
 // Siempre fresco: es un panel operativo, no puede servirse cacheado.
 export const dynamic = 'force-dynamic'
@@ -76,11 +81,12 @@ export default async function AdminPage({
 
   const isOwner = user.role === 'owner'
   // Mensajes e historial se piden solo si getConversation dice que lo puede ver.
-  const [conversations, stats, conversation, team] = await Promise.all([
+  const [conversations, stats, conversation, team, whatsapp] = await Promise.all([
     listConversations({ viewer: user, search, filter }),
     getStats(user),
     selectedId ? getConversation(selectedId, user) : Promise.resolve(null),
     isOwner ? listTeam() : Promise.resolve(null),
+    leerConfig(),
   ])
   const [messages, activities, presupuestos] = conversation
     ? await Promise.all([
@@ -93,6 +99,7 @@ export default async function AdminPage({
   const card = conversation?.card ?? null
   const contact = conversation ? contactView(conversation) : null
   const isChat = conversation?.source === 'chat'
+  const waAbierta = ventanaAbierta(conversation?.last_inbound_at ?? null, Date.now())
 
   return (
     <div className="h-[100dvh] flex overflow-hidden">
@@ -220,6 +227,14 @@ export default async function AdminPage({
                 </p>
               ) : null}
 
+              {conversation.wa_phone ? (
+                <BotContacto
+                  conversationId={conversation.id}
+                  general={whatsapp.mode}
+                  override={conversation.ai_mode_override}
+                />
+              ) : null}
+
               <AssigneeBox
                 key={`as:${conversation.assigned_to}`}
                 id={conversation.id}
@@ -322,10 +337,11 @@ export default async function AdminPage({
 
               <ActivityLog id={conversation.id} activities={activities} />
 
-              {isChat ? (
+              {isChat || conversation.wa_phone ? (
                 <section>
                   <h2 className="text-sm font-semibold text-brand-dark mb-2">
-                    Conversación con el asistente ({messages.length} mensajes)
+                    {conversation.wa_phone ? 'Chat de WhatsApp' : 'Conversación con el asistente'} (
+                    {messages.length} mensajes)
                   </h2>
                   <Thread messages={messages} />
                 </section>
@@ -338,19 +354,30 @@ export default async function AdminPage({
             </div>
 
             <footer className="flex-shrink-0 border-t border-brand-border bg-brand-cream px-3 sm:px-4 py-3">
-              <ConversationActions
-                id={conversation.id}
-                sender={user.name.split(' ')[0]}
-                phone={contact.telefono}
-                nombre={contact.nombre}
-                proyecto={contact.proyecto}
-              />
+              {conversation.wa_phone ? (
+                <Composer
+                  key={conversation.id}
+                  conversationId={conversation.id}
+                  ventanaAbierta={waAbierta}
+                />
+              ) : null}
+              {/* Con la ventana de 24 h abierta se contesta desde el panel. */}
+              {!conversation.wa_phone || !waAbierta ? (
+                <ConversationActions
+                  id={conversation.id}
+                  sender={user.name.split(' ')[0]}
+                  phone={contact.telefono}
+                  nombre={contact.nombre}
+                  proyecto={contact.proyecto}
+                />
+              ) : null}
             </footer>
           </>
         )}
       </section>
 
       <AutoRefresh />
+      {whatsapp.phone_number_id ? <Pulso conversationId={conversation?.id ?? null} /> : null}
     </div>
   )
 }

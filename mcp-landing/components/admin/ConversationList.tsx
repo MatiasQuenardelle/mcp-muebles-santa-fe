@@ -61,7 +61,10 @@ export default function ConversationList({
             ? followUpLabel(conversation.follow_up_on)
             : null
         const summary = isManual
-          ? proyecto ?? `Cargado a mano · ${SOURCE_LABELS[conversation.source]}`
+          ? proyecto ??
+            (conversation.wa_phone
+              ? 'Chat de WhatsApp'
+              : `Cargado a mano · ${SOURCE_LABELS[conversation.source]}`)
           : card?.resumen ?? 'Resumen en preparación…'
 
         return (

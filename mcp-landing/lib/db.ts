@@ -18,6 +18,7 @@ import {
   type PresupuestoData,
   type SeccionId,
 } from '@/lib/presupuesto'
+import type { ModoBot } from '@/lib/whatsapp/modo'
 
 export type { ContactCard, ConversationFilter, ConversationStatus }
 
@@ -62,6 +63,10 @@ export interface ConversationRow {
   // Responsable. Null = sin asignar (todos los usuarios lo ven y lo pueden tomar).
   assigned_to: string | null
   assigned_name: string | null
+  // WhatsApp por Kapso. Sin wa_phone, el contacto no tiene chat de WhatsApp.
+  wa_phone: string | null
+  ai_mode_override: ModoBot | null
+  last_inbound_at: string | null
 }
 
 // Quién mira el panel. Lo cumple el AdminUser de lib/session.ts; está acá
@@ -81,9 +86,10 @@ export interface ActivityRow {
 }
 
 export interface MessageRow {
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'human'
   content: string
   created_at: string
+  status: 'sent' | 'delivered' | 'read' | 'failed' | null
 }
 
 let client: NeonQueryFunction<false, false> | null = null
@@ -276,7 +282,8 @@ const CONVERSATION_COLUMNS = `
   source, email, zona, project, amount::float8 as amount,
   follow_up_on::text as follow_up_on, follow_up_note, lost_reason, status_changed_at,
   assigned_to,
-  (select u.name from admin_users u where u.id = conversations.assigned_to) as assigned_name
+  (select u.name from admin_users u where u.id = conversations.assigned_to) as assigned_name,
+  wa_phone, ai_mode_override, last_inbound_at
 `
 
 // Se ignoran los chats de un solo mensaje sin teléfono: son rebotes. Los cargados
@@ -412,10 +419,10 @@ export async function markConversationRead(id: string): Promise<void> {
 export async function getMessages(conversationId: string): Promise<MessageRow[]> {
   const sql = db()
   const rows = (await sql`
-    select role, content, created_at
+    select role, content, created_at, status
     from messages
     where conversation_id = ${conversationId}::uuid
-    order by id asc
+    order by created_at asc, id asc
   `) as unknown as MessageRow[]
   return rows
 }

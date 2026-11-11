@@ -120,7 +120,7 @@ export async function generateCard(messages: MessageRow[]): Promise<ContactCard 
   }
 
   const transcript = messages
-    .map((m) => `${m.role === 'user' ? 'VISITANTE' : 'BOT'}: ${m.content}`)
+    .map((m) => `${m.role === 'user' ? 'VISITANTE' : m.role === 'human' ? 'EQUIPO' : 'BOT'}: ${m.content}`)
     .join('\n')
     .slice(0, 20_000)
 

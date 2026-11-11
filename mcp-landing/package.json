@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "node --test tests/*.test.ts",
     "db:push": "bash db/push.sh",
-    "admin:invite": "node --env-file=.env.local db/invite.mjs"
+    "admin:invite": "node --env-file=.env.local db/invite.mjs",
+    "whatsapp:setup": "node --env-file=.env.local db/kapso-setup.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
