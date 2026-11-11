@@ -176,6 +176,11 @@ async function asegurarWorkflow(workflowId, phoneNumberId, functionId, activo) {
   const workflow = {
     name: 'MCP - WhatsApp directo',
     status: activo ? 'active' : 'draft',
+    // Coexistencia: Marcelo atiende desde la app. Si el workflow marcara cada
+    // mensaje como leído (el default de Kapso), el cliente vería tildes azules
+    // y "escribiendo…" aunque nadie conteste, y el chat dejaría de figurar sin
+    // leer en el celular.
+    inbound_message_read_mode: 'disabled',
     definition: definicion(functionId),
   }
 
