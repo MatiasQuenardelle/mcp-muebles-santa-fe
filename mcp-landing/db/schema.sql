@@ -473,6 +473,17 @@ create table if not exists asistente_uso (
   preguntas  int  not null default 0
 );
 
+-- Cada vez que el asistente no contesta: qué le pasó y a quién. Los logs de Vercel
+-- duran una hora, y el "no me contesta" llega días después.
+create table if not exists asistente_fallos (
+  id        bigserial   primary key,
+  creado    timestamptz not null default now(),
+  usuario   uuid        references admin_users(id) on delete set null,
+  estado    int         not null,
+  motivo    text        not null,
+  pregunta  text
+);
+
 -- Datos iniciales. Los que el dueño puede renombrar solo se cargan si la tabla
 -- está vacía: si no, cada migración volvería a crear los nombres viejos.
 insert into cuentas (nombre, tipo)

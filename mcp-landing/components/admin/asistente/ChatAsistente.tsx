@@ -23,7 +23,12 @@ interface Turno {
   fuentes: FuenteAsistente[]
 }
 
-async function pedirRespuesta(turnos: Turno[]): Promise<RespuestaAsistente | { error: string }> {
+interface Fallo {
+  error: string
+  sesionVencida?: boolean
+}
+
+async function pedirRespuesta(turnos: Turno[]): Promise<RespuestaAsistente | Fallo> {
   try {
     const response = await fetch('/api/admin/asistente', {
       method: 'POST',
@@ -38,6 +43,9 @@ async function pedirRespuesta(turnos: Turno[]): Promise<RespuestaAsistente | { e
       | null
     if (response.ok && typeof datos?.respuesta === 'string') {
       return { respuesta: datos.respuesta, fuentes: Array.isArray(datos.fuentes) ? datos.fuentes : [] }
+    }
+    if (response.status === 401) {
+      return { error: 'Tu sesión venció. Volvé a entrar al panel.', sesionVencida: true }
     }
     if (response.status === 504) {
       return { error: 'Tardó demasiado en responder. Probá de nuevo.' }
@@ -115,17 +123,19 @@ export default function ChatAsistente() {
   const [turnos, setTurnos] = useState<Turno[]>([])
   const [borrador, setBorrador] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // La pregunta sin contestar queda a la vista con el error abajo: si vuelve al
+  // cuadro de texto, en el celular parece que no pasó nada.
+  const [fallida, setFallida] = useState<(Fallo & { texto: string }) | null>(null)
   const altoTeclado = useAltoTeclado()
   const finRef = useRef<HTMLDivElement>(null)
   // El booleano y no el alto: el alto cambia mientras se arrastra la página con el teclado abierto.
   const tecladoAbierto = altoTeclado > 0
 
   useEffect(() => {
-    if (turnos.length > 0 || cargando) {
+    if (turnos.length > 0 || cargando || fallida) {
       finRef.current?.scrollIntoView({ block: 'end' })
     }
-  }, [turnos, cargando, tecladoAbierto])
+  }, [turnos, cargando, fallida, tecladoAbierto])
 
   async function preguntar(pregunta: string) {
     const texto = pregunta.trim().slice(0, MAX_CARACTERES)
@@ -135,17 +145,16 @@ export default function ChatAsistente() {
     const conPregunta: Turno[] = [...turnos, { rol: 'usuario', texto, fuentes: [] }]
     setTurnos(conPregunta)
     setBorrador('')
-    setError(null)
+    setFallida(null)
     setCargando(true)
 
     const resultado = await pedirRespuesta(conPregunta)
 
     setCargando(false)
     if ('error' in resultado) {
-      // Vuelve al borrador: la charla no queda con una pregunta sin contestar.
+      // Fuera de turnos: la charla que se le manda al modelo no lleva preguntas sin respuesta.
       setTurnos(turnos)
-      setBorrador(texto)
-      setError(resultado.error)
+      setFallida({ ...resultado, texto })
       return
     }
     setTurnos([...conPregunta, { rol: 'asistente', texto: resultado.respuesta, fuentes: resultado.fuentes }])
@@ -154,7 +163,7 @@ export default function ChatAsistente() {
   return (
     // El relleno queda bajo el teclado: sin él la página no llega a subir el último mensaje.
     <div className="min-w-0" style={{ paddingBottom: altoTeclado }}>
-      {turnos.length === 0 && !cargando ? (
+      {turnos.length === 0 && !cargando && !fallida ? (
         <div className="mb-3">
           <p className="text-sm text-brand-muted mb-2">Probá con alguna de estas, o escribí la tuya:</p>
           <div className="flex flex-wrap gap-2">
@@ -176,6 +185,30 @@ export default function ChatAsistente() {
         {turnos.map((turno, indice) => (
           <Mensaje key={indice} turno={turno} />
         ))}
+        {fallida ? (
+          <>
+            <Mensaje turno={{ rol: 'usuario', texto: fallida.texto, fuentes: [] }} />
+            <div role="alert" className="rounded-2xl rounded-bl-md border border-red-200 bg-red-50 px-3.5 py-2.5">
+              <p className={CLASE_ERROR}>{fallida.error}</p>
+              {fallida.sesionVencida ? (
+                <a
+                  href="/admin/login?next=%2Fadmin%2Fasistente"
+                  className="mt-2 inline-block text-sm font-semibold text-brand-dark underline"
+                >
+                  Entrar de nuevo
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => preguntar(fallida.texto)}
+                  className="mt-2 rounded-full border border-brand-border bg-white px-3 py-1 text-xs font-semibold text-brand-dark"
+                >
+                  Reintentar
+                </button>
+              )}
+            </div>
+          </>
+        ) : null}
         {cargando ? (
           <p role="status" className="text-sm text-brand-muted animate-pulse">
             Mirando los números…
@@ -192,11 +225,6 @@ export default function ChatAsistente() {
           preguntar(borrador)
         }}
       >
-        {error ? (
-          <p role="alert" className={`${CLASE_ERROR} mb-2`}>
-            {error}
-          </p>
-        ) : null}
         <div className="flex items-center gap-2">
           <input
             type="text"

@@ -133,6 +133,29 @@ export async function consumirPregunta(): Promise<boolean> {
   return filas.length > 0
 }
 
+// Deja constancia de una pregunta que no se contestó. Nunca tira: si la base
+// también falla, el aviso al usuario no puede romperse por esto.
+export async function registrarFallo(fallo: {
+  usuario: string | null
+  estado: number
+  motivo: string
+  cuerpo: unknown
+}): Promise<void> {
+  const crudos = (fallo.cuerpo as { mensajes?: unknown } | null)?.mensajes
+  const ultimo: unknown = Array.isArray(crudos) ? crudos[crudos.length - 1] : null
+  const texto = (ultimo as { texto?: unknown } | null)?.texto
+  const pregunta = typeof texto === 'string' ? texto.slice(0, MAX_CARACTERES) : null
+  try {
+    const sql = db()
+    await sql`
+      insert into asistente_fallos (usuario, estado, motivo, pregunta)
+      values (${fallo.usuario}, ${fallo.estado}, ${fallo.motivo.slice(0, 1000)}, ${pregunta})
+    `
+  } catch (error) {
+    console.error('Asistente: no se pudo registrar el fallo', error)
+  }
+}
+
 // Arma mensajes nuevos con los dos roles posibles: lo que mande el cliente en otro
 // campo no llega al modelo, y un rol system o tool se rechaza.
 export function parsearMensajes(cuerpo: unknown): MensajeAsistente[] {
