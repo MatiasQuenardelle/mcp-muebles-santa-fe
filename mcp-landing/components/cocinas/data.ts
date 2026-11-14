@@ -1,43 +1,23 @@
 // Todos los datos de la página /cocinas viven acá, para que Marcelo pueda
 // actualizar precios y textos sin tocar markup.
 //
-// Fuente de precios: lista oficial de MCP (lista-de-precios-mcpmuebles).
-// REVISAR: confirmar con Marcelo la vigencia antes de publicar.
+// Los precios viven en lib/precios.mjs, la lista única que también usan los bots.
 import { PROVEEDORES } from '@/lib/constants'
+import {
+  LARGOS_LISTA,
+  PRECIO_ML_BAJO_MESADA,
+  precioModulo,
+  type LineaId,
+  type ModuloId,
+} from '@/lib/precios.mjs'
 
-export const PRECIOS_ACTUALIZADOS = 'agosto 2026'
+export { PRECIOS_ACTUALIZADOS, PRECIO_ML_BAJO_MESADA, precioModulo } from '@/lib/precios.mjs'
+export type { LineaId, ModuloId } from '@/lib/precios.mjs'
 
-// Largos de la lista oficial, en cm. La calculadora cotiza cada 10 cm entre
-// LARGO_MIN y LARGO_MAX interpolando sobre estos puntos.
-const LARGOS_LISTA = [120, 140, 160, 180, 200]
+// La calculadora cotiza cada 10 cm entre LARGO_MIN y LARGO_MAX.
 export const LARGO_MIN = 60
 export const LARGO_MAX = 400
 export const LARGO_PASO = 10
-
-export type LineaId = 'economica' | 'estandar' | 'premium'
-export type ModuloId = 'bajoMesada' | 'alacena' | 'mesada'
-
-// Bajo mesada: precio por metro lineal, el mismo que publica /proyecto-cocina
-// y usa el chatbot (lib/chatbot.ts). Si cambia, cambiarlo en los tres lugares.
-export const PRECIO_ML_BAJO_MESADA: Record<LineaId, number> = {
-  economica: 310000,
-  estandar: 360000,
-  premium: 440000,
-}
-
-// Alacena y mesada salen de la lista oficial. Económica y Estándar comparten
-// tabla: la Económica solo se diferencia en el bajo mesada.
-type Tabla = Record<'alacena' | 'mesada', readonly number[]>
-
-const TABLA_BASE: Tabla = {
-  alacena: [272479, 313629, 354779, 395929, 435966],
-  mesada: [344769, 391480, 434854, 479341, 523827],
-}
-
-const TABLA_PREMIUM: Tabla = {
-  alacena: [405938, 453761, 500472, 548294, 595005],
-  mesada: [489350, 543846, 593893, 646164, 697324],
-}
 
 export const NOTA_COLOCACION: Record<LineaId, string> = {
   economica: 'Sin colocación · entrega a domicilio',
@@ -128,27 +108,6 @@ export const LINEAS: {
     ],
   },
 ]
-
-/** Precio de un módulo de `largo` cm. El bajo mesada va por metro lineal. Para
- * el resto, entre dos medidas de lista interpola en línea recta; fuera de la
- * lista escala con el precio por metro del extremo más cercano (REVISAR con
- * Marcelo: debajo de 1.20 m y arriba de 2.00 m). */
-export function precioModulo(linea: LineaId, modulo: ModuloId, largo: number) {
-  if (modulo === 'bajoMesada') return Math.round((PRECIO_ML_BAJO_MESADA[linea] * largo) / 100)
-
-  const precios = (linea === 'premium' ? TABLA_PREMIUM : TABLA_BASE)[modulo]
-  const ultimo = LARGOS_LISTA.length - 1
-
-  if (largo <= LARGOS_LISTA[0]) return Math.round((precios[0] * largo) / LARGOS_LISTA[0])
-  if (largo >= LARGOS_LISTA[ultimo]) {
-    return Math.round((precios[ultimo] * largo) / LARGOS_LISTA[ultimo])
-  }
-
-  const i = LARGOS_LISTA.findIndex((l) => l >= largo)
-  const [desde, hasta] = [LARGOS_LISTA[i - 1], LARGOS_LISTA[i]]
-  const avance = (largo - desde) / (hasta - desde)
-  return Math.round(precios[i - 1] + (precios[i] - precios[i - 1]) * avance)
-}
 
 export function precioDesde(linea: LineaId) {
   return precioModulo(linea, 'bajoMesada', LARGOS_LISTA[0])

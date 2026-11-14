@@ -1,39 +1,38 @@
+import { LARGOS_LISTA, PRECIO_ML_BAJO_MESADA, TABLA_BASE, TABLA_PREMIUM, pesos } from '@/lib/precios.mjs'
 import ChatCTAButton from './ChatCTAButton'
 
+// Precios de lib/precios.mjs: los mismos que la calculadora de /cocinas y los bots.
 const lineas = [
   {
     name: 'Económica',
-    desc: 'Renovar la cocina sin gastar de más. Calidad garantizada, diseño limpio.',
+    desc: 'Renovar la cocina sin gastar de más. Los mismos módulos, entregados en tu casa.',
     note: 'Desde · Sin colocación',
-    price: '$310.000',
+    price: pesos(PRECIO_ML_BAJO_MESADA.economica),
     unit: '/ ml',
     featured: false,
   },
   {
     name: 'Estándar',
-    desc: 'La mejor relación calidad-precio. Melamina Egger + herrajes premium.',
-    note: 'Desde',
-    price: '$360.000',
+    desc: 'La mejor relación calidad-precio. Asesoramiento de diseño y ajuste final en obra.',
+    note: 'Desde · Colocación a convenir',
+    price: pesos(PRECIO_ML_BAJO_MESADA.estandar),
     unit: '/ ml',
     featured: true,
   },
   {
     name: 'Premium',
-    desc: 'Lo mejor en diseño y terminaciones. Para quienes quieren que dure décadas.',
+    desc: 'MDF Egger y herrajes de extracción total. Para quienes quieren que dure décadas.',
     note: 'Desde · Colocación incluida',
-    price: '$440.000',
+    price: pesos(PRECIO_ML_BAJO_MESADA.premium),
     unit: '/ ml',
     featured: false,
   },
 ]
 
-const granito = [
-  { size: '1.20 m', price: '$440.000' },
-  { size: '1.40 m', price: '$489.000' },
-  { size: '1.60 m', price: '$534.000' },
-  { size: '1.80 m', price: '$581.000' },
-  { size: '2.00 m', price: '$627.000' },
-]
+const mesadas = LARGOS_LISTA.map((largo, i) => ({
+  size: `${(largo / 100).toFixed(2)} m`,
+  price: pesos(TABLA_BASE.mesada[i]),
+}))
 
 export default function PreciosReferencia() {
   return (
@@ -109,22 +108,22 @@ export default function PreciosReferencia() {
           />
         </div>
 
-        {/* Granito instalado */}
+        {/* Mesadas */}
         <div className="bg-brand-dark text-white rounded-2xl p-8 md:p-12 relative overflow-hidden mb-8">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(196,162,69,0.08)_0%,transparent_50%)]" />
           <div className="relative">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-px bg-brand-gold" />
               <span className="text-sm tracking-[0.2em] text-brand-gold uppercase">
-                Mesadas de granito
+                Mesadas
               </span>
             </div>
             <h3 className="font-serif text-2xl md:text-3xl mb-8">
-              Granito instalado, colocaci&oacute;n incluida.
+              Mesada instalada, con colocaci&oacute;n y sellado.
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {granito.map((item) => (
+              {mesadas.map((item) => (
                 <div
                   key={item.size}
                   className="border border-white/10 rounded-xl p-4 text-center bg-white/[0.03]"
@@ -138,8 +137,10 @@ export default function PreciosReferencia() {
               ))}
             </div>
             <p className="text-xs text-brand-muted-dark mt-6">
-              * Precios en pesos argentinos &middot; Medidas especiales y trabajos en L a
-              consultar &middot; Financiaci&oacute;n disponible
+              * L&iacute;neas Econ&oacute;mica y Est&aacute;ndar &middot; Premium desde{' '}
+              {pesos(TABLA_PREMIUM.mesada[0])} &middot; Granito natural o sint&eacute;tico
+              premium &middot; Medidas especiales y trabajos en L a consultar &middot; Pago por
+              etapas
             </p>
           </div>
         </div>
