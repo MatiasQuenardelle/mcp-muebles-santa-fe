@@ -17,6 +17,11 @@ const OLD_LANDINGS = [
   ['/presupuesto', '/'],
   ['/placards', '/'],
   ['/placares', '/'],
+  // Vínculos a sitio de Google Ads (cargados en feb 2026): rechazados por 404.
+  ['/presupuestador', '/cocinas#calculadora'],
+  ['/trabajos-realizados', '/cocinas#trabajos'],
+  ['/preguntas-frecuentes', '/cocinas#preguntas'],
+  ['/pago-en-cuotas-sin-interes', '/proyecto-cocina#precios'],
 ]
 
 /** @type {import('next').NextConfig} */
