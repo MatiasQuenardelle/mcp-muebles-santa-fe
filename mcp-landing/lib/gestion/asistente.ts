@@ -8,6 +8,7 @@ import { cifrasSinRespaldo, rangoMes, rangoPeriodo, type Periodo, type PeriodoCl
 import { InputError } from './entrada'
 import { REPORTES } from './reportes'
 import type { Reportes } from './tipos'
+import { MODELO_OPENAI, opcionesDeModelo } from '@/lib/modeloOpenAI'
 
 export interface MensajeAsistente {
   rol: 'usuario' | 'asistente'
@@ -46,8 +47,7 @@ export interface ContextoAsistente {
 
 export const TOPE_PREGUNTAS_MES = 1500
 
-const MODELO_POR_DEFECTO = 'gpt-5-mini'
-const MODELO_CON_RAZONAMIENTO = /^(gpt-5|o\d)/
+const MODELO_POR_DEFECTO = MODELO_OPENAI
 const MAX_TURNOS = 8
 const MAX_CARACTERES = 500
 const MAX_VUELTAS = 3
@@ -320,10 +320,8 @@ export async function responderAsistente(
     try {
       mensaje = await llamarModelo(pedir, apiKey, {
         model: modelo,
-        // Incluye el razonamiento: con un límite chico la respuesta visible sale vacía.
-        max_completion_tokens: 2000,
-        // Los modelos con razonamiento rechazan temperature.
-        ...(MODELO_CON_RAZONAMIENTO.test(modelo) ? { reasoning_effort: 'low' } : { temperature: 0 }),
+        // Con razonamiento, el límite lo incluye: con uno chico la respuesta visible sale vacía.
+        ...opcionesDeModelo(modelo, { temperature: 0, maxTokens: 2000 }),
         messages: historial,
         tools: herramientas,
         // En la última vuelta tiene que redactar: otra consulta quedaría sin contestar.

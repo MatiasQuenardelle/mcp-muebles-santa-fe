@@ -2,8 +2,9 @@
 // No importar desde componentes cliente.
 
 import { DATOS_MCP, PASOS_COTIZAR } from '@/lib/datosMcp.mjs'
+import { MODELO_OPENAI } from '@/lib/modeloOpenAI'
 
-export const CHAT_MODEL = (process.env.OPENAI_CHAT_MODEL ?? '').trim() || 'gpt-4o-mini'
+export const CHAT_MODEL = (process.env.OPENAI_CHAT_MODEL ?? '').trim() || MODELO_OPENAI
 
 export const MAX_HISTORY_MESSAGES = 30
 export const MAX_MESSAGE_LENGTH = 1500

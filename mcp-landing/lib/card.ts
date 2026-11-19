@@ -2,11 +2,12 @@
 // chatbot para el panel del dueño.
 
 import type { ContactCard } from '@/lib/crm'
+import { MODELO_OPENAI, opcionesDeModelo } from '@/lib/modeloOpenAI'
 import type { MessageRow } from '@/lib/db'
 
 // Modelo fijo a propósito: CHAT_MODEL es override-able por env para tunear el
 // bot público, y el extractor no debería cambiar junto con él.
-const EXTRACTOR_MODEL = 'gpt-4o-mini'
+const EXTRACTOR_MODEL = MODELO_OPENAI
 
 // Parametrizable por rubro: es lo único que hay que tocar para reusar esto en
 // otro cliente.
@@ -132,7 +133,7 @@ export async function generateCard(messages: MessageRow[]): Promise<ContactCard 
     },
     body: JSON.stringify({
       model: EXTRACTOR_MODEL,
-      temperature: 0,
+      ...opcionesDeModelo(EXTRACTOR_MODEL, { temperature: 0 }),
       messages: [
         { role: 'system', content: EXTRACTOR_PROMPT },
         { role: 'user', content: `Conversación a analizar:\n\n${transcript}` },

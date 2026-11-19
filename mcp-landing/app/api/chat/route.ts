@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { opcionesDeModelo } from '@/lib/modeloOpenAI'
 import {
   CHAT_MODEL,
   MAX_COMPLETION_TOKENS,
@@ -168,8 +169,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: CHAT_MODEL,
-        max_tokens: MAX_COMPLETION_TOKENS,
-        temperature: 0.6,
+        ...opcionesDeModelo(CHAT_MODEL, { temperature: 0.6, maxTokens: MAX_COMPLETION_TOKENS }),
         messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
       }),
     })

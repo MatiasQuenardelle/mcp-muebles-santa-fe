@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { CHAT_MODEL } from '@/lib/chatbot'
+import { opcionesDeModelo } from '@/lib/modeloOpenAI'
 import { getConversation, getMessages } from '@/lib/db'
 import { requireAdmin } from '@/lib/session'
 import { WHATSAPP_PROMPT } from '@/lib/whatsapp/prompt.mjs'
@@ -43,8 +44,7 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: CHAT_MODEL,
-        max_tokens: 300,
-        temperature: 0.7,
+        ...opcionesDeModelo(CHAT_MODEL, { temperature: 0.7, maxTokens: 300 }),
         messages: [
           {
             role: 'system',
