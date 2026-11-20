@@ -1,5 +1,6 @@
 import Image from 'next/image'
-import { BASE_PRICE_LABEL, WHATSAPP_DISPLAY_NUMBER } from '@/lib/constants'
+import { WHATSAPP_DISPLAY_NUMBER } from '@/lib/constants'
+import HeroPriceBadge from './HeroPriceBadge'
 import HeroIntentOptions from './HeroIntentOptions'
 import WhatsAppButton from './WhatsAppButton'
 
@@ -14,9 +15,7 @@ export default function Hero() {
         {/* Content */}
         <div className="md:py-20">
           <div className="flex flex-wrap items-center gap-3 mb-8">
-            <span className="inline-flex items-center rounded-full border border-brand-gold/30 bg-brand-gold/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-gold">
-              {BASE_PRICE_LABEL}
-            </span>
+            <HeroPriceBadge />
             <span className="text-sm tracking-[0.2em] text-brand-gold uppercase">
               MCP - Muebles a Medida &middot; Santa Fe
             </span>
