@@ -71,7 +71,7 @@ export const TOPE_DE_GAMA = {
   /** Perfil Gola en el bajo mesada: se vende en tiras de 3 m. */
   gola: { metrosTira: 3, precioTira: 90000 },
   /** Luces LED en la alacena: tiras de 3 m lineales. */
-  led: { metrosTira: 3, precioTira: 90000 },
+  led: { metrosTira: 3, precioTira: 100000 },
   /** Correderas con cierre suave, por cajón. */
   precioCajon: 45000,
   cajonesDefault: 3,
