@@ -537,7 +537,7 @@ export default function Calculadora() {
                       {EXTRAS.led.metrosTira} m de alacena
                     </span>
                   </Chip>
-                  <div>
+                  <div className="flex flex-col">
                     <Chip
                       activo={s.puertasVidrio > 0}
                       onClick={() =>
