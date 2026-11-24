@@ -5,6 +5,7 @@
 
 import {
   ADICIONALES,
+  EXTRAS,
   MESADAS,
   PILETAS,
   PRECIO_ML_BAJO_MESADA,
@@ -54,7 +55,7 @@ ${MESADAS.map((m) =>
 ${PILETAS.map((p) => `${p.nombre} ${pesos(p.precio)}`).join(' · ')}
 
 ## Adicionales (Económica, Estándar y Premium; en Tope de Gama ya vienen)
-${ADICIONALES.map((a) => `${a.nombre} ${pesos(a.precio)}`).join(' · ')}
+${ADICIONALES.map((a) => `${a.nombre} ${pesos(a.precio)}`).join(' · ')} · ${EXTRAS.led.nombre} ${pesos(EXTRAS.led.precioTira)} cada ${EXTRAS.led.metrosTira} m de alacena · ${EXTRAS.puertaVidrio.nombre} ${pesos(EXTRAS.puertaVidrio.precio)} por puerta
 
 ## Condiciones
 - Siempre incluye: fabricación a medida, cantos termofusionados, ajuste final de puertas y cajones, limpieza final.

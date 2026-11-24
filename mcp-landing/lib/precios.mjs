@@ -116,6 +116,17 @@ export const ADICIONALES = /** @type {{ id: AdicionalId, nombre: string, precio:
 ])
 
 /**
+ * Opcionales con cantidad, para Económica, Estándar y Premium (Tope de Gama ya
+ * trae los suyos en TOPE_DE_GAMA). Lista de Marcelo del 2026-11-24, 15:27.
+ */
+export const EXTRAS = {
+  /** Luces LED en la alacena: tiras de 3 m sobre los metros de alacena. */
+  led: { nombre: 'Luces LED en alacena', metrosTira: 3, precioTira: 100000 },
+  /** Puerta con vidrio y perfil de aluminio GrupoEuro, por puerta. */
+  puertaVidrio: { nombre: 'Puerta con vidrio perfil GrupoEuro', precio: 100000, max: 6 },
+}
+
+/**
  * Precio de un tramo de mesada, o null si es a consultar o la medida no existe
  * para ese material.
  * @param {MesadaId} id
