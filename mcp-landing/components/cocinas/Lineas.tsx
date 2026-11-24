@@ -11,17 +11,17 @@ export default function Lineas() {
             <Eyebrow>Nuestras líneas</Eyebrow>
             <Titulo
               className="mt-4 text-[2rem] md:text-[2.6rem]"
-              recta="Tres líneas, una misma"
+              recta="Cuatro líneas, una misma"
               italica="obsesión por la medida."
             />
             <p className="mt-5 text-[15px] leading-relaxed text-brand-muted">
-              Lo que cambia entre las tres es el tablero y el servicio, no la prolijidad. Todas
+              Lo que cambia entre las cuatro es el tablero, el equipamiento y el servicio, no la prolijidad. Todas
               se fabrican con las medidas de tu pared en nuestro taller de Santa Fe.
             </p>
           </div>
         </Reveal>
 
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
           {LINEAS.map((l, i) => (
             <Reveal key={l.id} delay={i * 90} className="flex">
               <article

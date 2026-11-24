@@ -43,7 +43,12 @@ export interface PreliminarData {
   conColocacion: boolean
   notaColocacion: string
   preciosActualizados: string
-  modulos: { nombre: string; medida: string; precio: number }[]
+  /**
+   * Renglones de components/cocinas/cotizar.ts. Desde 2026-11-24 la medida trae
+   * su unidad ("2,00 m", "1 u."); los presupuestos anteriores guardaron solo el
+   * número. `nota` reemplaza al precio ("A consultar", "Incluido").
+   */
+  modulos: { nombre: string; medida: string; precio: number; nota?: string }[]
   total: number
 }
 

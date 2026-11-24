@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useWhatsAppCTA } from '@/lib/useWhatsAppCTA'
+import { ADICIONALES, MESADAS, PILETAS, TOPE_DE_GAMA, pesos } from '@/lib/precios.mjs'
 import {
   LARGO_MAX,
   LARGO_MIN,
@@ -10,65 +11,203 @@ import {
   MODULOS,
   NOTA_COLOCACION,
   PRECIOS_ACTUALIZADOS,
-  precioModulo,
   type LineaId,
   type ModuloId,
 } from './data'
+import {
+  MAX_LADOS,
+  SELECCION_INICIAL,
+  ajustarAMesada,
+  cotizar,
+  medidasMesada,
+  metros,
+  type Seleccion,
+} from './cotizar'
 import DescargaPdf from './DescargaPdf'
 import { Eyebrow, IconoWhatsApp, Titulo, formatearPesos } from './ui'
 
-/** Largo en cm. Se recuerda aunque el módulo no entre en el presupuesto. */
-type Seleccion = Record<ModuloId, { largo: number; incluido: boolean }>
-
-const SELECCION_INICIAL: Seleccion = {
-  bajoMesada: { largo: 200, incluido: true },
-  alacena: { largo: 160, incluido: true },
-  mesada: { largo: 200, incluido: false },
+function Paso({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted">
+      {children}
+    </p>
+  )
 }
 
-const metros = (largo: number) => (largo / 100).toFixed(2)
+function Chip({
+  activo,
+  onClick,
+  children,
+}: {
+  activo: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={activo}
+      className={`min-w-0 rounded-md border px-3 py-2.5 text-left text-[13px] transition-all ${
+        activo
+          ? 'border-brand-gold bg-brand-gold/10 font-semibold text-brand-dark ring-1 ring-brand-gold'
+          : 'border-brand-border text-brand-dark/80 hover:border-brand-gold/50'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** −/+ y barra para el largo de un lado. `medidas`: solo esas (mesada de medida fija). */
+function Lado({
+  nombre,
+  largo,
+  incluido,
+  medidas,
+  onChange,
+  onQuitar,
+}: {
+  nombre: string
+  largo: number
+  incluido: boolean
+  medidas: number[] | null
+  onChange: (largo: number) => void
+  onQuitar?: () => void
+}) {
+  const min = medidas ? medidas[0] : LARGO_MIN
+  const max = medidas ? medidas[medidas.length - 1] : LARGO_MAX
+  const paso = medidas ? medidas[1] - medidas[0] : LARGO_PASO
+  return (
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center gap-3">
+        {nombre ? (
+          <span className="w-14 text-[12px] font-medium text-brand-muted">{nombre}</span>
+        ) : null}
+        <div
+          className={`flex items-center rounded border transition-all ${
+            incluido ? 'border-brand-dark' : 'border-brand-border opacity-50'
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => onChange(largo - paso)}
+            disabled={incluido && largo <= min}
+            aria-label={`Restar ${paso} cm`}
+            className="h-10 w-10 text-[18px] text-brand-dark transition-colors hover:bg-brand-dark/5 disabled:opacity-30"
+          >
+            −
+          </button>
+          <output
+            aria-live="polite"
+            className="min-w-[4.5rem] text-center text-[14px] font-semibold tabular-nums text-brand-dark"
+          >
+            {metros(largo)} m
+          </output>
+          <button
+            type="button"
+            onClick={() => onChange(largo + paso)}
+            disabled={incluido && largo >= max}
+            aria-label={`Sumar ${paso} cm`}
+            className="h-10 w-10 text-[18px] text-brand-dark transition-colors hover:bg-brand-dark/5 disabled:opacity-30"
+          >
+            +
+          </button>
+        </div>
+        {onQuitar ? (
+          <button
+            type="button"
+            onClick={onQuitar}
+            className="text-[12.5px] text-brand-muted underline underline-offset-4 hover:text-brand-dark"
+          >
+            Quitar lado
+          </button>
+        ) : null}
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={paso}
+        value={largo}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={`Largo en centímetros${nombre ? `, ${nombre}` : ''}`}
+        className={`mt-3 w-full accent-brand-dark ${incluido ? '' : 'opacity-40'}`}
+      />
+      <div className="flex justify-between text-[11px] tabular-nums text-brand-muted">
+        <span>{metros(min)} m</span>
+        <span>{metros(max)} m</span>
+      </div>
+    </div>
+  )
+}
 
 export default function Calculadora() {
-  const [linea, setLinea] = useState<LineaId>('estandar')
-  const [seleccion, setSeleccion] = useState<Seleccion>(SELECCION_INICIAL)
+  const [s, setS] = useState<Seleccion>(SELECCION_INICIAL)
+  const tope = s.linea === 'topeDeGama'
+  const medidasFijas = medidasMesada(s.mesada.material)
 
-  const ajustarLargo = (id: ModuloId, largo: number) =>
-    setSeleccion((s) => ({
-      ...s,
-      [id]: { largo: Math.min(Math.max(largo, LARGO_MIN), LARGO_MAX), incluido: true },
-    }))
+  const setLinea = (linea: LineaId) => setS((p) => ({ ...p, linea }))
+
+  const ajustar = (id: ModuloId, i: number, largo: number) =>
+    setS((p) => {
+      const fijas = id === 'mesada' ? medidasMesada(p.mesada.material) : null
+      const [min, max] = fijas ? [fijas[0], fijas[fijas.length - 1]] : [LARGO_MIN, LARGO_MAX]
+      const nuevo = Math.min(Math.max(largo, min), max)
+      const lados = p[id].lados.map((l, j) => (j === i ? nuevo : l))
+      return { ...p, [id]: { ...p[id], lados, incluido: true } }
+    })
+
+  const sumarLado = (id: ModuloId) =>
+    setS((p) => {
+      const fijas = id === 'mesada' ? medidasMesada(p.mesada.material) : null
+      const nuevo = fijas ? fijas[0] : 150
+      return { ...p, [id]: { ...p[id], lados: [...p[id].lados, nuevo], incluido: true } }
+    })
+
+  const quitarLado = (id: ModuloId, i: number) =>
+    setS((p) => ({ ...p, [id]: { ...p[id], lados: p[id].lados.filter((_, j) => j !== i) } }))
 
   const alternarModulo = (id: ModuloId) =>
-    setSeleccion((s) => ({ ...s, [id]: { ...s[id], incluido: !s[id].incluido } }))
+    setS((p) => ({ ...p, [id]: { ...p[id], incluido: !p[id].incluido } }))
 
-  const items = useMemo(
-    () =>
-      MODULOS.filter((m) => seleccion[m.id].incluido).map((m) => ({
-        id: m.id,
-        nombre: m.nombre,
-        medida: metros(seleccion[m.id].largo),
-        precio: precioModulo(linea, m.id, seleccion[m.id].largo),
-      })),
-    [linea, seleccion]
-  )
+  const elegirMaterial = (material: Seleccion['mesada']['material']) =>
+    setS((p) => ({
+      ...p,
+      mesada: {
+        ...p.mesada,
+        material,
+        incluido: true,
+        lados: p.mesada.lados.map((l) => ajustarAMesada(material, l)),
+      },
+    }))
 
-  const total = items.reduce((acc, i) => acc + i.precio, 0)
-  const nombreLinea = LINEAS.find((l) => l.id === linea)?.nombre ?? ''
+  const alternarAdicional = (id: Seleccion['adicionales'][number]) =>
+    setS((p) => ({
+      ...p,
+      adicionales: p.adicionales.includes(id)
+        ? p.adicionales.filter((a) => a !== id)
+        : [...p.adicionales, id],
+    }))
+
+  const { renglones, total, aConsultar } = useMemo(() => cotizar(s), [s])
+  const hayModulos = s.bajoMesada.incluido || s.alacena.incluido || s.mesada.incluido
+  const nombreLinea = LINEAS.find((l) => l.id === s.linea)?.nombre ?? ''
 
   const mensaje = useMemo(() => {
-    if (items.length === 0) {
+    if (!hayModulos) {
       return 'Hola Marcelo, quiero armar el presupuesto de mi cocina a medida.'
     }
-    const detalle = items
-      .map((i) => `· ${i.nombre} ${i.medida} m — ${formatearPesos(i.precio)}`)
+    const detalle = renglones
+      .map((r) => `· ${r.nombre} ${r.medida} — ${r.nota ?? formatearPesos(r.precio)}`)
       .join('\n')
     return [
       `Hola Marcelo, armé este presupuesto en la calculadora de la web (línea ${nombreLinea}):`,
       detalle,
-      `Total orientativo: ${formatearPesos(total)}`,
+      `Total orientativo: ${formatearPesos(total)}${aConsultar ? ' + mesada a consultar' : ''}`,
       '¿Me confirmás el precio exacto para mis medidas?',
     ].join('\n\n')
-  }, [items, nombreLinea, total])
+  }, [renglones, nombreLinea, total, aConsultar, hayModulos])
 
   const { href, handleClick } = useWhatsAppCTA({
     baseMessage: mensaje,
@@ -91,9 +230,9 @@ export default function Calculadora() {
           />
           <p className="mt-5 text-[15px] leading-relaxed text-white/60">
             Elegí la línea, poné los metros lineales de cada módulo (de a 10 cm) y la
-            calculadora te da el número con la lista de precios de MCP. Es orientativo: el
-            precio final sale del relevamiento de tu espacio, pero te deja saber en qué rango
-            estás parado.
+            calculadora te da el número con la lista de precios de MCP. Si tu cocina es en L,
+            sumá otro lado. Es orientativo: el precio final sale del relevamiento de tu espacio,
+            pero te deja saber en qué rango estás parado.
           </p>
         </div>
 
@@ -104,9 +243,9 @@ export default function Calculadora() {
               <legend className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted">
                 1 · Elegí la línea
               </legend>
-              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
                 {LINEAS.map((l) => {
-                  const activa = l.id === linea
+                  const activa = l.id === s.linea
                   return (
                     <button
                       key={l.id}
@@ -129,19 +268,79 @@ export default function Calculadora() {
                   )
                 })}
               </div>
-              <p className="mt-3 text-[12.5px] text-brand-muted">
-                {NOTA_COLOCACION[linea]}
-              </p>
+              <p className="mt-3 text-[12.5px] text-brand-muted">{NOTA_COLOCACION[s.linea]}</p>
+
+              {tope ? (
+                <div className="mt-6 space-y-6 rounded-md border border-brand-gold/40 bg-brand-gold/[0.06] p-4 sm:p-5">
+                  <div>
+                    <p className="text-[12.5px] font-semibold text-brand-dark">Color</p>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {TOPE_DE_GAMA.colores.map((c) => (
+                        <Chip
+                          key={c}
+                          activo={s.color === c}
+                          onClick={() => setS((p) => ({ ...p, color: c }))}
+                        >
+                          {c}
+                        </Chip>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[12.5px] font-semibold text-brand-dark">
+                      Cajones con cierre suave{' '}
+                      <span className="font-normal text-brand-muted">
+                        · {pesos(TOPE_DE_GAMA.precioCajon)} c/u
+                      </span>
+                    </p>
+                    <div className="mt-2.5 flex w-fit items-center rounded border border-brand-dark">
+                      <button
+                        type="button"
+                        onClick={() => setS((p) => ({ ...p, cajones: Math.max(0, p.cajones - 1) }))}
+                        disabled={s.cajones <= 0}
+                        aria-label="Un cajón menos"
+                        className="h-10 w-10 text-[18px] text-brand-dark hover:bg-brand-dark/5 disabled:opacity-30"
+                      >
+                        −
+                      </button>
+                      <output className="min-w-[3.5rem] text-center text-[14px] font-semibold tabular-nums text-brand-dark">
+                        {s.cajones}
+                      </output>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setS((p) => ({
+                            ...p,
+                            cajones: Math.min(TOPE_DE_GAMA.cajonesMax, p.cajones + 1),
+                          }))
+                        }
+                        disabled={s.cajones >= TOPE_DE_GAMA.cajonesMax}
+                        aria-label="Un cajón más"
+                        className="h-10 w-10 text-[18px] text-brand-dark hover:bg-brand-dark/5 disabled:opacity-30"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-brand-muted">
+                    El perfil Gola y las luces LED se calculan solos con los metros de bajo
+                    mesada y alacena. La puerta vidriada, el cubertero y el porta residuos ya
+                    vienen incluidos.
+                  </p>
+                </div>
+              ) : null}
             </fieldset>
 
             <div className="mt-10">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted">
-                2 · Poné los metros lineales
-              </p>
+              <Paso>2 · Poné los metros lineales</Paso>
 
-              <div className="mt-5 space-y-7">
+              <div className="mt-5 space-y-9">
                 {MODULOS.map((m) => {
-                  const { largo, incluido } = seleccion[m.id]
+                  const { lados, incluido } = s[m.id]
+                  const esMesada = m.id === 'mesada'
+                  const subtotal = renglones.find((r) =>
+                    esMesada ? r.nombre.startsWith('Mesada') : r.nombre === m.nombre
+                  )
                   return (
                     <div key={m.id} className="min-w-0">
                       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -149,46 +348,57 @@ export default function Calculadora() {
                           {m.nombre}
                         </h3>
                         <span className="font-display text-[17px] text-brand-gold">
-                          {incluido ? formatearPesos(precioModulo(linea, m.id, largo)) : '—'}
+                          {!incluido || !subtotal
+                            ? '—'
+                            : subtotal.nota ?? formatearPesos(subtotal.precio)}
                         </span>
                       </div>
                       <p className="mt-1 text-[13px] leading-relaxed text-brand-muted">
                         {m.detalle}
                       </p>
 
-                      <div className="mt-3.5 flex flex-wrap items-center gap-3">
-                        <div
-                          className={`flex items-center rounded border transition-all ${
-                            incluido
-                              ? 'border-brand-dark'
-                              : 'border-brand-border opacity-50'
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => ajustarLargo(m.id, largo - LARGO_PASO)}
-                            disabled={incluido && largo <= LARGO_MIN}
-                            aria-label={`Restar 10 cm a ${m.nombre}`}
-                            className="h-10 w-10 text-[18px] text-brand-dark transition-colors hover:bg-brand-dark/5 disabled:opacity-30"
-                          >
-                            −
-                          </button>
-                          <output
-                            aria-live="polite"
-                            className="min-w-[4.5rem] text-center text-[14px] font-semibold tabular-nums text-brand-dark"
-                          >
-                            {metros(largo)} m
-                          </output>
-                          <button
-                            type="button"
-                            onClick={() => ajustarLargo(m.id, largo + LARGO_PASO)}
-                            disabled={incluido && largo >= LARGO_MAX}
-                            aria-label={`Sumar 10 cm a ${m.nombre}`}
-                            className="h-10 w-10 text-[18px] text-brand-dark transition-colors hover:bg-brand-dark/5 disabled:opacity-30"
-                          >
-                            +
-                          </button>
+                      {esMesada ? (
+                        <div className="mt-3.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {MESADAS.map((mat) => (
+                            <Chip
+                              key={mat.id}
+                              activo={incluido && s.mesada.material === mat.id}
+                              onClick={() => elegirMaterial(mat.id)}
+                            >
+                              <span className="block">{mat.nombre}</span>
+                              <span className="mt-0.5 block text-[11.5px] font-normal text-brand-muted">
+                                {mat.porMetro ? `${pesos(mat.porMetro)} el metro · ` : ''}
+                                {mat.detalle}
+                              </span>
+                            </Chip>
+                          ))}
                         </div>
+                      ) : null}
+
+                      <div className="mt-4 space-y-4">
+                        {lados.map((largo, i) => (
+                          <Lado
+                            key={i}
+                            nombre={lados.length > 1 ? `Lado ${i + 1}` : ''}
+                            largo={largo}
+                            incluido={incluido}
+                            medidas={esMesada ? medidasFijas : null}
+                            onChange={(l) => ajustar(m.id, i, l)}
+                            onQuitar={i > 0 ? () => quitarLado(m.id, i) : undefined}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="mt-3.5 flex flex-wrap gap-2">
+                        {lados.length < MAX_LADOS ? (
+                          <button
+                            type="button"
+                            onClick={() => sumarLado(m.id)}
+                            className="rounded border border-brand-border px-3 py-2 text-[13px] font-medium text-brand-dark transition-all hover:border-brand-dark/40"
+                          >
+                            + Sumar otro lado {lados.length === 1 ? '(en L)' : '(en U)'}
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => alternarModulo(m.id)}
@@ -202,48 +412,84 @@ export default function Calculadora() {
                           No lo llevo
                         </button>
                       </div>
-
-                      <input
-                        type="range"
-                        min={LARGO_MIN}
-                        max={LARGO_MAX}
-                        step={LARGO_PASO}
-                        value={largo}
-                        onChange={(e) => ajustarLargo(m.id, Number(e.target.value))}
-                        aria-label={`Largo de ${m.nombre} en centímetros`}
-                        className={`mt-3 w-full accent-brand-dark ${incluido ? '' : 'opacity-40'}`}
-                      />
-                      <div className="flex justify-between text-[11px] tabular-nums text-brand-muted">
-                        <span>{metros(LARGO_MIN)} m</span>
-                        <span>{metros(LARGO_MAX)} m</span>
-                      </div>
                     </div>
                   )
                 })}
               </div>
+            </div>
+
+            <div className="mt-10">
+              <Paso>3 · Pileta de acero (se suma aparte)</Paso>
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <Chip activo={s.pileta === null} onClick={() => setS((p) => ({ ...p, pileta: null }))}>
+                  Sin pileta
+                </Chip>
+                {PILETAS.map((p) => (
+                  <Chip
+                    key={p.id}
+                    activo={s.pileta === p.id}
+                    onClick={() => setS((prev) => ({ ...prev, pileta: p.id }))}
+                  >
+                    <span className="block">{p.nombre.replace('Pileta ', '')}</span>
+                    <span className="mt-0.5 block text-[11.5px] font-normal text-brand-muted">
+                      {pesos(p.precio)}
+                    </span>
+                  </Chip>
+                ))}
+              </div>
+              {s.mesada.incluido && s.mesada.material === 'sinteticoEstandar' ? (
+                <p className="mt-2.5 text-[12px] text-brand-muted">
+                  La mesada sintética estándar ya trae una bacha simple. Elegí una pileta solo si
+                  querés otra.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="mt-10">
+              <Paso>4 · Adicionales</Paso>
+              {tope ? (
+                <p className="mt-3 text-[13px] text-brand-muted">
+                  En Tope de Gama el cubertero y el porta residuos ya vienen incluidos.
+                </p>
+              ) : (
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {ADICIONALES.map((a) => (
+                    <Chip
+                      key={a.id}
+                      activo={s.adicionales.includes(a.id)}
+                      onClick={() => alternarAdicional(a.id)}
+                    >
+                      <span className="block">{a.nombre}</span>
+                      <span className="mt-0.5 block text-[11.5px] font-normal text-brand-muted">
+                        + {pesos(a.precio)}
+                      </span>
+                    </Chip>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* ── Resumen ───────────────────────────────────────────── */}
           <div className="min-w-0 bg-brand-dark p-6 text-white sm:p-9">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-gold">
-              3 · Tu presupuesto
+              Tu presupuesto
             </p>
 
             <div className="mt-6 space-y-3 border-b border-white/10 pb-6">
-              {items.length === 0 ? (
+              {!hayModulos ? (
                 <p className="text-[13.5px] leading-relaxed text-brand-muted-dark">
                   Elegí al menos un módulo y su medida para ver el total.
                 </p>
               ) : (
-                items.map((i) => (
-                  <div key={i.id} className="flex items-baseline justify-between gap-3">
+                renglones.map((r) => (
+                  <div key={r.nombre} className="flex items-baseline justify-between gap-3">
                     <span className="min-w-0 text-[13.5px] text-brand-muted-dark">
-                      {i.nombre}{' '}
-                      <span className="tabular-nums text-white/50">{i.medida} m</span>
+                      {r.nombre}{' '}
+                      <span className="tabular-nums text-white/50">{r.medida}</span>
                     </span>
                     <span className="flex-shrink-0 text-[13.5px] tabular-nums">
-                      {formatearPesos(i.precio)}
+                      {r.nota ?? formatearPesos(r.precio)}
                     </span>
                   </div>
                 ))
@@ -257,9 +503,12 @@ export default function Calculadora() {
               <p className="mt-2 font-display text-[2.5rem] leading-none tabular-nums text-brand-gold">
                 {formatearPesos(total)}
               </p>
+              {aConsultar ? (
+                <p className="mt-2 text-[12.5px] text-white/70">+ mesada a consultar</p>
+              ) : null}
               <p className="mt-3 text-[12px] leading-relaxed text-brand-muted-dark">
-                {NOTA_COLOCACION[linea]}. Precios de lista actualizados a{' '}
-                {PRECIOS_ACTUALIZADOS}, en pesos. Los trabajos en L se cotizan aparte.
+                {NOTA_COLOCACION[s.linea]}. Precios de lista actualizados a{' '}
+                {PRECIOS_ACTUALIZADOS}, en pesos.
               </p>
             </div>
 
@@ -277,7 +526,7 @@ export default function Calculadora() {
               Te llega a Marcelo con el detalle ya escrito.
             </p>
 
-            <DescargaPdf linea={linea} seleccion={seleccion} disabled={items.length === 0} />
+            <DescargaPdf seleccion={s} disabled={!hayModulos} />
           </div>
         </div>
       </div>

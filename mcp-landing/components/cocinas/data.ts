@@ -6,6 +6,8 @@ import { PROVEEDORES } from '@/lib/constants'
 import {
   LARGOS_LISTA,
   PRECIO_ML_BAJO_MESADA,
+  TOPE_DE_GAMA,
+  pesos,
   precioModulo,
   type LineaId,
   type ModuloId,
@@ -13,16 +15,13 @@ import {
 
 export { PRECIOS_ACTUALIZADOS, PRECIO_ML_BAJO_MESADA, precioModulo } from '@/lib/precios.mjs'
 export type { LineaId, ModuloId } from '@/lib/precios.mjs'
-
-// La calculadora cotiza cada 10 cm entre LARGO_MIN y LARGO_MAX.
-export const LARGO_MIN = 60
-export const LARGO_MAX = 400
-export const LARGO_PASO = 10
+export { LARGO_MAX, LARGO_MIN, LARGO_PASO } from './cotizar'
 
 export const NOTA_COLOCACION: Record<LineaId, string> = {
   economica: 'Sin colocación · entrega a domicilio',
   estandar: 'Colocación a convenir, se cotiza aparte',
   premium: 'Colocación profesional incluida',
+  topeDeGama: 'Colocación profesional incluida',
 }
 
 const DIFERENCIA_ECONOMICA_ML = PRECIO_ML_BAJO_MESADA.estandar - PRECIO_ML_BAJO_MESADA.economica
@@ -107,10 +106,30 @@ export const LINEAS: {
       'Colocación profesional incluida',
     ],
   },
+  {
+    id: 'topeDeGama',
+    nombre: 'Tope de Gama',
+    claim: 'Equipada al máximo',
+    descripcion:
+      'La Premium con todo el equipamiento: apertura con perfil Gola sin manijas, cajones con cierre suave, luces LED y puerta vidriada. Para la cocina que se luce.',
+    material: 'MDF Egger importado',
+    colocacion: 'Colocación profesional incluida',
+    incluye: [
+      `Colores a elección: ${TOPE_DE_GAMA.colores.join(', ')}`,
+      `Perfil Gola: ${pesos(TOPE_DE_GAMA.gola.precioTira)} cada ${TOPE_DE_GAMA.gola.metrosTira} m`,
+      `Correderas con cierre suave: ${pesos(TOPE_DE_GAMA.precioCajon)} por cajón`,
+      `Luces LED: ${pesos(TOPE_DE_GAMA.led.precioTira)} cada ${TOPE_DE_GAMA.led.metrosTira} m lineales`,
+      '1 puerta vidriada con luz LED por dentro y por fuera, incluida',
+      'Cubertero y porta residuos incluidos',
+      'Colocación profesional incluida',
+    ],
+  },
 ]
 
+/** Bajo mesada de 1,20 m; en Tope de Gama, con su tira de perfil Gola. */
 export function precioDesde(linea: LineaId) {
-  return precioModulo(linea, 'bajoMesada', LARGOS_LISTA[0])
+  const gola = linea === 'topeDeGama' ? TOPE_DE_GAMA.gola.precioTira : 0
+  return precioModulo(linea, 'bajoMesada', LARGOS_LISTA[0]) + gola
 }
 
 export const PROCESO = [
@@ -262,6 +281,10 @@ export const PREGUNTAS = [
     a: 'En la línea Premium usamos MDF Egger importado, el mismo tablero que las cocinas de alta gama, con correderas Grupo Euro de extracción total. No mezclamos buen tablero con herrajes baratos: si algo tiene que durar, tiene que durar todo.',
   },
   {
+    q: '¿Puedo cotizar una cocina en L?',
+    a: 'Sí. En la calculadora tocás "Sumar otro lado" en el bajo mesada, la alacena o la mesada y ponés la medida de cada pared. Por ejemplo, 3,50 m + 2,70 m. Cada lado se cotiza por su medida y se suman.',
+  },
+  {
     q: '¿Y si mi espacio tiene formas raras?',
     a: 'Justamente para eso somos a medida. Techos inclinados, columnas, rincones irregulares y paredes que no están a escuadra: todo tiene solución. Antes de fabricar hacemos el relevamiento detallado del espacio.',
   },
@@ -275,7 +298,7 @@ export const PREGUNTAS = [
   },
   {
     q: '¿La mesada está incluida?',
-    a: 'La mesada es un módulo aparte que sumás en la calculadora si la necesitás, porque no todos la cambian. Se cotiza por metro lineal igual que el resto y va con colocación y sellado profesional. El material (granito natural o sintético premium) lo definimos juntos.',
+    a: 'La mesada es un módulo aparte que sumás en la calculadora si la necesitás, porque no todos la cambian. Elegís el material (granito Gris Perla, sintético estándar con bacha o sintético a medida) y la pileta, que se suma aparte. Los granitos negros Boreal y Brasil se cotizan a consulta.',
   },
   {
     q: '¿Trabajan fuera de Santa Fe Capital?',

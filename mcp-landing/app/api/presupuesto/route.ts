@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server'
-import {
-  LARGO_MAX,
-  LARGO_MIN,
-  LARGO_PASO,
-  LINEAS,
-  MODULOS,
-  NOTA_COLOCACION,
-  PRECIOS_ACTUALIZADOS,
-  precioModulo,
-} from '@/components/cocinas/data'
+import { cotizar, leerSeleccion } from '@/components/cocinas/cotizar'
+import { LINEAS, NOTA_COLOCACION, PRECIOS_ACTUALIZADOS } from '@/components/cocinas/data'
 import { todayKey } from '@/lib/adminFormat'
 import {
   MAX_CALCULATOR_LEADS_PER_HOUR,
@@ -26,15 +18,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function medida(largo: number): string {
-  return (largo / 100).toLocaleString('es-AR', { minimumFractionDigits: 2 })
-}
-
 /**
  * PDF preliminar de la calculadora de /cocinas. El visitante deja nombre y
  * WhatsApp, entra como contacto 'calculadora' en el panel y se le devuelve el id
  * para descargar el PDF. Los precios se recalculan acá con la lista de
- * components/cocinas/data.ts: nunca se confía en el total del navegador.
+ * components/cocinas/cotizar.ts: nunca se confía en el total del navegador.
  */
 export async function POST(request: Request) {
   if (!isDatabaseConfigured()) {
@@ -59,36 +47,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Revisá el número de WhatsApp.' }, { status: 400 })
   }
 
-  const linea = LINEAS.find((l) => l.id === body.linea)
-  if (!linea) {
+  const seleccion = leerSeleccion(body.seleccion)
+  const linea = seleccion && LINEAS.find((l) => l.id === seleccion.linea)
+  if (!seleccion || !linea) {
     return NextResponse.json({ error: 'Pedido inválido.' }, { status: 400 })
   }
-  const seleccion = body.seleccion
-  const modulos: PreliminarData['modulos'] = []
-  for (const modulo of MODULOS) {
-    const elegido = seleccion[modulo.id]
-    if (!isRecord(elegido) || elegido.incluido !== true) {
-      continue
-    }
-    const largo = elegido.largo
-    if (
-      typeof largo !== 'number' ||
-      !Number.isInteger(largo) ||
-      largo < LARGO_MIN ||
-      largo > LARGO_MAX ||
-      largo % LARGO_PASO !== 0
-    ) {
-      return NextResponse.json({ error: 'Pedido inválido.' }, { status: 400 })
-    }
-    modulos.push({
-      nombre: modulo.nombre,
-      medida: medida(largo),
-      precio: precioModulo(linea.id, modulo.id, largo),
-    })
-  }
-  if (modulos.length === 0) {
+  if (!seleccion.bajoMesada.incluido && !seleccion.alacena.incluido && !seleccion.mesada.incluido) {
     return NextResponse.json({ error: 'Elegí al menos un módulo.' }, { status: 400 })
   }
+  const { renglones: modulos, total, aConsultar } = cotizar(seleccion)
 
   const ipHash = await hashIp(clientIp(request))
   if (ipHash && (await countRecentCalculatorLeads(ipHash)) >= MAX_CALCULATOR_LEADS_PER_HOUR) {
@@ -98,8 +65,10 @@ export async function POST(request: Request) {
     )
   }
 
-  const total = modulos.reduce((acc, m) => acc + m.precio, 0)
-  const detalle = modulos.map((m) => `${m.nombre} ${m.medida} m`).join(' + ')
+  const detalle = modulos
+    .filter((m) => !m.nota || m.nota === 'A consultar')
+    .map((m) => `${m.nombre} ${m.medida}`)
+    .join(' + ')
   const page = typeof body.page === 'string' ? body.page.slice(0, 200) : '/cocinas'
   const attribution = isRecord(body.attribution) ? body.attribution : null
   const data: PreliminarData = {
@@ -138,7 +107,7 @@ export async function POST(request: Request) {
       conversationId,
       name: nombre,
       phone: telefono,
-      message: `Línea ${linea.nombre}: ${detalle} · ${pesos(total)}`,
+      message: `Línea ${linea.nombre}: ${detalle} · ${pesos(total)}${aConsultar ? ' + mesada a consultar' : ''}`,
       page,
       attribution,
       headline: '🧮 Bajaron el presupuesto en PDF de la calculadora',

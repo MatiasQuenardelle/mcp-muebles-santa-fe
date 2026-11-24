@@ -1,4 +1,4 @@
-import { LARGOS_LISTA, PRECIO_ML_BAJO_MESADA, TABLA_BASE, TABLA_PREMIUM, pesos } from '@/lib/precios.mjs'
+import { MESADAS, PRECIO_ML_BAJO_MESADA, pesos } from '@/lib/precios.mjs'
 import ChatCTAButton from './ChatCTAButton'
 
 // Precios de lib/precios.mjs: los mismos que la calculadora de /cocinas y los bots.
@@ -29,10 +29,12 @@ const lineas = [
   },
 ]
 
-const mesadas = LARGOS_LISTA.map((largo, i) => ({
-  size: `${(largo / 100).toFixed(2)} m`,
-  price: pesos(TABLA_BASE.mesada[i]),
-}))
+// Granito sintético estándar con bacha simple, en sus medidas fijas.
+const mesadas = Object.entries(MESADAS.find((m) => m.id === 'sinteticoEstandar')?.medidas ?? {}).map(
+  ([largo, precio]) => ({ size: `${(Number(largo) / 100).toFixed(2)} m`, price: pesos(precio) })
+)
+const grisPerla = MESADAS.find((m) => m.id === 'grisPerla')?.porMetro ?? 0
+const sinteticoMedida = MESADAS.find((m) => m.id === 'sinteticoMedida')?.porMetro ?? 0
 
 export default function PreciosReferencia() {
   return (
@@ -131,16 +133,16 @@ export default function PreciosReferencia() {
                   <div className="font-bold text-lg mb-1">{item.size}</div>
                   <div className="text-brand-gold font-serif text-xl mb-1">{item.price}</div>
                   <div className="text-[11px] uppercase tracking-wider text-brand-muted-dark">
-                    Colocaci&oacute;n incl.
+                    Con bacha simple
                   </div>
                 </div>
               ))}
             </div>
             <p className="text-xs text-brand-muted-dark mt-6">
-              * L&iacute;neas Econ&oacute;mica y Est&aacute;ndar &middot; Premium desde{' '}
-              {pesos(TABLA_PREMIUM.mesada[0])} &middot; Granito natural o sint&eacute;tico
-              premium &middot; Medidas especiales y trabajos en L a consultar &middot; Pago por
-              etapas
+              * Granito sint&eacute;tico est&aacute;ndar con bacha simple, 60 cm de fondo
+              &middot; Sint&eacute;tico a medida {pesos(sinteticoMedida)} el metro &middot;
+              Granito Gris Perla {pesos(grisPerla)} el metro &middot; Pileta aparte &middot; Pago
+              por etapas
             </p>
           </div>
         </div>

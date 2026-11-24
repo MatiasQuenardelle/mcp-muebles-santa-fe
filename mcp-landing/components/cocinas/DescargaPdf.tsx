@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { getAttribution } from '@/lib/attribution'
 import { trackPresupuestoPdf } from '@/lib/useWhatsAppCTA'
-import type { LineaId, ModuloId } from './data'
+import type { Seleccion } from './cotizar'
 
 /**
  * Descarga del presupuesto en PDF a cambio de nombre y WhatsApp. El visitante
@@ -11,12 +11,10 @@ import type { LineaId, ModuloId } from './data'
  * del botón de WhatsApp, que sigue siendo la acción principal.
  */
 export default function DescargaPdf({
-  linea,
   seleccion,
   disabled,
 }: {
-  linea: LineaId
-  seleccion: Record<ModuloId, { largo: number; incluido: boolean }>
+  seleccion: Seleccion
   disabled: boolean
 }) {
   const [abierto, setAbierto] = useState(false)
@@ -38,7 +36,6 @@ export default function DescargaPdf({
           nombre,
           telefono,
           empresa,
-          linea,
           seleccion,
           page: window.location.pathname,
           attribution: getAttribution(),

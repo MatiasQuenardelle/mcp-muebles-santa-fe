@@ -362,7 +362,7 @@ export function PropuestaFormalPdf({ numero, data }: { numero: string; data: Pre
 
 const ALCANCE_PRELIMINAR = [
   'Este es un presupuesto orientativo, armado con la lista de precios de MCP y las medidas que cargaste en la calculadora de la web.',
-  'El precio final se confirma después de relevar tu espacio y definir el diseño. Los trabajos en L se cotizan aparte. No incluye pileta, grifería, electrodomésticos ni instalaciones de agua, gas o electricidad.',
+  'El precio final se confirma después de relevar tu espacio y definir el diseño. No incluye grifería, electrodomésticos ni instalaciones de agua, gas o electricidad, ni la pileta si no la elegiste en la calculadora.',
 ]
 
 const PASOS_PRELIMINAR = [
@@ -393,15 +393,17 @@ export function PropuestaPreliminarPdf({ numero, data }: { numero: string; data:
         <View wrap={false}>
           <Seccion>DETALLE DE TU COCINA</Seccion>
           <View style={s.thead}>
-            <Text style={[s.th, s.cDesc]}>MÓDULO</Text>
-            <Text style={[s.th, s.cMoney]}>MEDIDA</Text>
+            <Text style={[s.th, s.cDesc]}>DETALLE</Text>
+            <Text style={[s.th, s.cMoney, { width: 110 }]}>MEDIDA</Text>
             <Text style={[s.th, s.cMoney]}>PRECIO</Text>
           </View>
           {data.modulos.map((modulo) => (
             <View key={modulo.nombre} style={s.tr}>
               <Text style={s.cDesc}>{modulo.nombre}</Text>
-              <Text style={s.cMoney}>{modulo.medida} m</Text>
-              <Text style={[s.cMoney, s.bold]}>{pesos(modulo.precio)}</Text>
+              <Text style={[s.cMoney, { width: 110 }]}>
+                {/^[\d.,]+$/.test(modulo.medida) ? `${modulo.medida} m` : modulo.medida}
+              </Text>
+              <Text style={[s.cMoney, s.bold]}>{modulo.nota ?? pesos(modulo.precio)}</Text>
             </View>
           ))}
           <View style={s.totalBar}>
@@ -409,6 +411,7 @@ export function PropuestaPreliminarPdf({ numero, data }: { numero: string; data:
             <Text style={s.totalValue}>{pesos(data.total)}</Text>
           </View>
           <Text style={[s.note, { marginTop: 6 }]}>
+            {data.modulos.some((m) => m.nota === 'A consultar') ? 'Más la mesada, a consultar. ' : ''}
             {data.notaColocacion}. Precios de lista actualizados a {data.preciosActualizados}, en pesos.
           </Text>
         </View>
