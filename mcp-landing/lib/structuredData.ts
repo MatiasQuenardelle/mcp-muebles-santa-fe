@@ -15,7 +15,9 @@ export const businessJsonLd = {
   description:
     'F\u00e1brica de cocinas a medida en Santa Fe con instalaci\u00f3n completa. Melamina EGGER, mesadas de granito natural, herrajes Grupo Euro y bacha Johnson. 20 a\u00f1os de experiencia.',
   url: `${SITE_URL}/`,
-  telephone: '+5493425196295',
+  // El mismo teléfono que la ficha de Google (nombre, dirección y teléfono iguales
+  // en todos lados). El botón de WhatsApp de la web sigue yendo al bot (519-6295).
+  telephone: '+543425696876',
   image: `${SITE_URL}/logo.jpg`,
   logo: `${SITE_URL}/logo.jpg`,
   priceRange: '$$',
@@ -24,6 +26,8 @@ export const businessJsonLd = {
   areaServed: { '@type': 'City', name: 'Santa Fe' },
   address: {
     '@type': 'PostalAddress',
+    streetAddress: 'Ángel Cassanello 2145',
+    postalCode: 'S3000',
     addressLocality: 'Santa Fe',
     addressRegion: 'Santa Fe',
     addressCountry: 'AR',
@@ -34,6 +38,7 @@ export const businessJsonLd = {
     longitude: -60.6902168,
   },
   hasMap: MAPS_LINK,
+  sameAs: ['https://www.instagram.com/mcpmuebles/', MAPS_LINK],
   openingHoursSpecification: [
     {
       '@type': 'OpeningHoursSpecification',

@@ -27,7 +27,18 @@ const OLD_LANDINGS = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async redirects() {
-    return OLD_LANDINGS.map(([source, destination]) => ({ source, destination, permanent: true }))
+    return [
+      // mcpmuebles.com y www.mcpmuebles.com respondían por separado (contenido
+      // duplicado para Google): todo va a www. /api queda afuera porque el webhook
+      // de Kapso apunta a mcpmuebles.com y un POST no sobrevive a un redirect.
+      {
+        source: '/:path((?!api/).*)',
+        has: [{ type: 'host', value: 'mcpmuebles.com' }],
+        destination: 'https://www.mcpmuebles.com/:path',
+        permanent: true,
+      },
+      ...OLD_LANDINGS.map(([source, destination]) => ({ source, destination, permanent: true })),
+    ]
   },
   experimental: {
     // react-pdf trae fontkit/yoga con assets propios: se carga desde node_modules
