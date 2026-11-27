@@ -8,6 +8,7 @@ import {
   EXTRAS,
   MESADAS,
   PILETAS,
+  PLACARES,
   PRECIO_ML_BAJO_MESADA,
   TOPE_DE_GAMA,
   pesos,
@@ -57,6 +58,9 @@ ${PILETAS.map((p) => `${p.nombre} ${pesos(p.precio)}`).join(' · ')}
 ## Adicionales (Económica, Estándar y Premium; en Tope de Gama ya vienen)
 ${ADICIONALES.map((a) => `${a.nombre} ${pesos(a.precio)}`).join(' · ')} · ${EXTRAS.led.nombre} ${pesos(EXTRAS.led.precioTira)} cada ${EXTRAS.led.metrosTira} m de alacena · ${EXTRAS.puertaVidrio.nombre} ${pesos(EXTRAS.puertaVidrio.precio)} por puerta
 
+## Placares (precio por metro cúbico)
+${pesos(PLACARES.precioM3)} por m³. Los m³ salen de ancho × alto × profundidad, en metros. Ejemplo: 2,00 m de ancho × 2,40 m de alto × 0,60 m de profundidad = 2,88 m³ × ${pesos(PLACARES.precioM3)} = ${pesos(Math.round(2.88 * PLACARES.precioM3))}. Si no sabe el alto, usá 2,40 m; si no sabe la profundidad, 0,60 m (lo común para colgar ropa). Es un precio de referencia: se ajusta con las medidas exactas en obra, el tipo de puerta (batiente o corrediza), la distribución interior y las terminaciones. La calculadora está en https://www.mcpmuebles.com/placares
+
 ## Condiciones
 - Siempre incluye: fabricación a medida, cantos termofusionados, ajuste final de puertas y cajones, limpieza final.
 - No incluye: pileta (salvo que la elija aparte o la mesada sintética estándar, que trae bacha simple), grifería, electrodomésticos, electricidad, plomería, pintura o revestimientos, retiro de los muebles viejos.
@@ -70,4 +74,5 @@ export const PASOS_COTIZAR = `1. Si no lo dijo, preguntá qué necesita: bajo me
 2. Pedí el largo de cada módulo en metros; si la cocina es en L o en U, el largo de cada lado. Preguntá qué línea le interesa; si no sabe, sugerí Estándar.
 3. Calculá cada módulo por separado con los datos de arriba y sumalos: el bajo mesada es metros × precio por ml; la alacena sale de su tabla con la medida más cercana, lado por lado; la mesada según el material. Sumá la pileta, los adicionales y, en Tope de Gama, su equipamiento. Nunca cobres la alacena ni la mesada al precio del bajo mesada.
 4. Presentá el total redondeado como orientativo, con el detalle por módulo en una línea (por ejemplo: "bajo mesada 2 m $720.000 + alacena 1,60 m $354.779, unos $1.075.000 en línea Estándar"). Decí qué pasa con la colocación en esa línea, y aclará SIEMPRE que el precio exacto sale del relevamiento del espacio.
-5. Para placards, vestidores, muebles de baño u otros muebles no hay lista: tomá los datos y decí que los cotiza Marcelo.`
+5. Para placards: pedí ancho, alto y profundidad, calculá los m³ y multiplicá por el precio del m³ (ver Placares). Mostrá la cuenta (por ejemplo: "2 × 2,40 × 0,60 = 2,88 m³, unos $2.304.000") y aclará que es de referencia. Podés pasarle la calculadora de placares.
+6. Para vestidores, muebles de baño u otros muebles no hay lista: tomá los datos y decí que los cotiza Marcelo.`
