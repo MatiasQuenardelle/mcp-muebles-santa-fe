@@ -148,22 +148,21 @@ export const tiras = (/** @type {number} */ largo, /** @type {number} */ metrosT
 export const pesos = (monto) => `$${monto.toLocaleString('es-AR')}`
 
 // ── Placares (/placares) ──
-// PROVISORIO: precios de la landing de placards de abril 2026 (placard de 2 m a
-// $1.824.000, corredizas +$120.000, puerta espejada +$80.000). Marcelo tiene que
-// pasar la lista vigente; cuando llegue, se cambia acá y en ningún otro lado.
+// Lista de Marcelo del 2026-11-27 (18:59): $800.000 por metro cúbico
+// (ancho × alto × profundidad, en metros). Ej.: 2,00 × 2,40 × 0,60 = 2,88 m³ = $2.304.000.
+// Es de referencia: el tipo de puerta, la distribución interior y las terminaciones
+// se afinan al cotizar formalmente.
 
-/** Placard de piso a techo con interiores incluidos (bauleras, cajonera, pantalonero, barral). */
+/** Medidas en cm: [mínimo, máximo, paso, inicial]. */
 export const PLACARES = {
-  provisorio: true,
-  /** Precio por metro de ancho. */
-  precioMetro: 912000,
-  anchoMin: 100,
-  anchoMax: 400,
-  paso: 10,
-  anchoInicial: 200,
-  /** Sistema de puertas corredizas en lugar de batientes, por placard. */
-  corredizas: 120000,
-  /** Puerta con espejo, por puerta. */
-  espejo: 80000,
-  espejosMax: 4,
+  precioM3: 800000,
+  ancho: { min: 60, max: 400, paso: 10, inicial: 200 },
+  alto: { min: 180, max: 280, paso: 5, inicial: 240 },
+  profundidad: { min: 40, max: 70, paso: 5, inicial: 60 },
+}
+
+/** Volumen en m³ y precio de un placard; medidas en cm. */
+export function precioPlacard(/** @type {number} */ ancho, /** @type {number} */ alto, /** @type {number} */ profundidad) {
+  const m3 = (ancho * alto * profundidad) / 1e6
+  return { m3, precio: Math.round(m3 * PLACARES.precioM3) }
 }

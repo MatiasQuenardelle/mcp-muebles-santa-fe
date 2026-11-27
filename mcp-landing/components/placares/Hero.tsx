@@ -3,7 +3,7 @@
 import { useWhatsAppCTA } from '@/lib/useWhatsAppCTA'
 import { BotonFantasma, BotonOro, IconoWhatsApp } from '@/components/cocinas/ui'
 
-const señales = ['+20 años fabricando', 'De piso a techo', 'Interiores incluidos', 'Colocación propia']
+const señales = ['+20 años fabricando', 'Precio por m³', 'Interior a medida', 'Colocación propia']
 
 export default function Hero() {
   const { href, handleClick } = useWhatsAppCTA({
@@ -13,9 +13,15 @@ export default function Hero() {
   })
 
   return (
-    <section className="relative isolate overflow-hidden bg-brand-ink">
-      <div className="cc-trama absolute inset-0" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_80%_0%,rgba(196,162,69,0.12)_0%,transparent_70%)]" />
+    <section className="relative isolate flex min-h-[580px] items-center overflow-hidden bg-brand-ink md:min-h-[680px]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/placares/hero.jpg"
+        alt="Placard a medida con puertas corredizas símil madera e interior blanco, fabricado por MCP"
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        fetchPriority="high"
+      />
+      <div className="cc-hero-velo absolute inset-0" />
 
       <div className="relative mx-auto w-full max-w-[1180px] px-5 py-20 md:py-28">
         <nav aria-label="Ruta" className="mb-7 text-[11px] uppercase tracking-[0.18em] text-white/45">
@@ -33,7 +39,7 @@ export default function Hero() {
 
         <p className="mt-6 max-w-[46ch] text-[15px] leading-relaxed text-white/70 md:text-base">
           Fabricamos y colocamos placares de piso a techo con el interior pensado para lo que
-          guardás. Poné el ancho en la calculadora y mirá cuánto sale antes de escribirnos.
+          guardás. Poné las medidas en la calculadora y mirá cuánto sale antes de escribirnos.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-x-2.5 gap-y-2">

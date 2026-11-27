@@ -1,46 +1,65 @@
 import { PLACARES } from '@/lib/precios.mjs'
 
-export type SeleccionPlacard = {
-  ancho: number
+export type Medida = 'ancho' | 'alto' | 'profundidad'
+
+export type SeleccionPlacard = Record<Medida, number> & {
   puertas: 'batientes' | 'corredizas'
-  espejos: number
 }
 
 export const SELECCION_INICIAL: SeleccionPlacard = {
-  ancho: PLACARES.anchoInicial,
-  puertas: 'batientes',
-  espejos: 0,
+  ancho: PLACARES.ancho.inicial,
+  alto: PLACARES.alto.inicial,
+  profundidad: PLACARES.profundidad.inicial,
+  puertas: 'corredizas',
 }
+
+export const MEDIDAS: { id: Medida; nombre: string; ayuda: string }[] = [
+  { id: 'ancho', nombre: 'Ancho', ayuda: 'De pared a pared, o lo que querés que ocupe.' },
+  { id: 'alto', nombre: 'Alto', ayuda: 'Del piso al techo. Lo más común es 2,40 m.' },
+  { id: 'profundidad', nombre: 'Profundidad', ayuda: 'Para colgar ropa se usa 60 cm.' },
+]
 
 export const metros = (cm: number) => (cm / 100).toFixed(2).replace('.', ',')
 
-export function cotizarPlacard(s: SeleccionPlacard) {
-  const renglones = [
-    {
-      nombre: 'Placard a medida',
-      medida: `${metros(s.ancho)} m`,
-      precio: Math.round((PLACARES.precioMetro * s.ancho) / 100),
-    },
-  ]
-  if (s.puertas === 'corredizas') {
-    renglones.push({ nombre: 'Puertas corredizas', medida: '', precio: PLACARES.corredizas })
-  }
-  if (s.espejos > 0) {
-    renglones.push({
-      nombre: s.espejos === 1 ? 'Puerta con espejo' : 'Puertas con espejo',
-      medida: `× ${s.espejos}`,
-      precio: PLACARES.espejo * s.espejos,
-    })
-  }
-  return { renglones, total: renglones.reduce((t, r) => t + r.precio, 0) }
-}
+export const TRABAJOS = [
+  {
+    src: '/placares/g-corredizas-madera.jpg',
+    titulo: 'Corredizas símil madera',
+    texto: 'Tres hojas de piso a techo con perfil de aluminio.',
+  },
+  {
+    src: '/placares/g-espejo.jpg',
+    titulo: 'Con espejo y cajonera',
+    texto: 'Corredizas blancas, una hoja espejada y cajones a la vista.',
+  },
+  {
+    src: '/placares/g-negro-abierto.jpg',
+    titulo: 'Negro, interior blanco',
+    texto: 'Doble barral para colgar y zapatero abajo.',
+  },
+  {
+    src: '/placares/g-interior.jpg',
+    titulo: 'Interior a medida',
+    texto: 'Estantes, barrales y cajones repartidos según lo que se guarda.',
+  },
+  {
+    src: '/placares/g-listones.jpg',
+    titulo: 'Puerta de listones',
+    texto: 'Frente corredizo de varillas que divide y esconde.',
+  },
+  {
+    src: '/placares/g-taller.jpg',
+    titulo: 'En el taller',
+    texto: 'Marcelo con un vestidor antes de salir a colocación.',
+  },
+]
 
 export const INCLUYE = [
   'Melamina Egger de 18 mm en el color que elijas',
-  'Bauleras arriba para lo que usás poco',
-  'Cajonera con correderas Grupo Euro',
-  'Pantalonero y barral para colgar',
-  'Diseño a medida antes de fabricar',
+  'Herrajes y correderas Grupo Euro',
+  'Interior a medida: estantes, barrales, cajones',
+  'Puertas batientes o corredizas',
+  'Diseño antes de fabricar',
   'Medición, fabricación y colocación propias',
 ]
 
@@ -64,12 +83,12 @@ export const PROCESO = [
 
 export const PREGUNTAS = [
   {
-    q: '¿El precio de la calculadora es el final?',
-    a: 'Es orientativo. El precio exacto sale de medir el espacio y definir el interior con vos, pero te deja saber en qué rango estás.',
+    q: '¿Cómo se calcula el precio?',
+    a: 'Por metro cúbico: multiplicás ancho × alto × profundidad, en metros. Un placard de 2 m de ancho, 2,40 m de alto y 60 cm de profundidad son 2,88 m³. La calculadora hace la cuenta sola.',
   },
   {
-    q: '¿Qué incluye el placard?',
-    a: 'Va de piso a techo, con bauleras arriba, cajonera, pantalonero y barral. Las puertas batientes vienen incluidas; las corredizas y las de espejo se suman aparte.',
+    q: '¿El precio de la calculadora es el final?',
+    a: 'Es de referencia. El precio exacto depende de las medidas tomadas en obra, el tipo de puerta, la distribución interior y las terminaciones que elijas. Lo terminamos de afinar al cotizar formalmente.',
   },
   {
     q: '¿Hacen vestidores?',

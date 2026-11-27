@@ -5,6 +5,7 @@ import { BotonFantasma, BotonOro, IconoWhatsApp, Titulo } from '@/components/coc
 
 const enlaces = [
   { href: '#calculadora', texto: 'Calculadora' },
+  { href: '#trabajos', texto: 'Trabajos' },
   { href: '#incluye', texto: 'Qué incluye' },
   { href: '#proceso', texto: 'Proceso' },
   { href: '#preguntas', texto: 'Preguntas' },
