@@ -1,6 +1,16 @@
 import { PRECIOS_ACTUALIZADOS } from './data'
 
-const columnas = [
+type Enlace = { texto: string; href: string }
+
+const ENLACES_COCINAS: Enlace[] = [
+  { texto: 'Líneas y precios', href: '#lineas' },
+  { texto: 'Calculadora', href: '#calculadora' },
+  { texto: 'Trabajos entregados', href: '#trabajos' },
+  { texto: 'Mesadas', href: '#mesadas' },
+  { texto: 'Preguntas frecuentes', href: '#preguntas' },
+]
+
+const columnasFijas = [
   {
     titulo: 'Qué fabricamos',
     items: [
@@ -16,19 +26,18 @@ const columnas = [
     titulo: 'Zona de trabajo',
     items: ['Santa Fe Capital', 'Santo Tomé', 'Recreo', 'Rincón', 'Alrededores a consultar'],
   },
-  {
-    titulo: 'La página',
-    items: [
-      { texto: 'Líneas y precios', href: '#lineas' },
-      { texto: 'Calculadora', href: '#calculadora' },
-      { texto: 'Trabajos entregados', href: '#trabajos' },
-      { texto: 'Mesadas', href: '#mesadas' },
-      { texto: 'Preguntas frecuentes', href: '#preguntas' },
-    ],
-  },
 ]
 
-export default function Footer() {
+/** `enlaces`: la columna "La página" con las anclas de la página que lo usa. */
+export default function Footer({
+  enlaces = ENLACES_COCINAS,
+  nota,
+}: {
+  enlaces?: Enlace[]
+  /** Reemplaza la nota de precios de cocinas al pie. */
+  nota?: string
+}) {
+  const columnas = [...columnasFijas, { titulo: 'La página', items: enlaces }]
   return (
     <footer className="border-t border-white/10 bg-brand-dark px-5 py-14">
       <div className="mx-auto max-w-[1180px]">
@@ -75,9 +84,8 @@ export default function Footer() {
             Argentina
           </p>
           <p className="mx-auto mt-2 max-w-[70ch] text-[11.5px] leading-relaxed text-brand-muted-dark/60">
-            Lista de precios actualizada a {PRECIOS_ACTUALIZADOS}, en pesos argentinos. Los
-            valores de la calculadora son orientativos: el precio final surge del relevamiento
-            del espacio. Medidas especiales y trabajos en L se cotizan aparte.
+            {nota ??
+              `Lista de precios actualizada a ${PRECIOS_ACTUALIZADOS}, en pesos argentinos. Los valores de la calculadora son orientativos: el precio final surge del relevamiento del espacio. Medidas especiales y trabajos en L se cotizan aparte.`}
           </p>
         </div>
       </div>

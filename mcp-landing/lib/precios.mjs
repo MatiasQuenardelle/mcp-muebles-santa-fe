@@ -146,3 +146,24 @@ export const tiras = (/** @type {number} */ largo, /** @type {number} */ metrosT
 
 /** @param {number} monto */
 export const pesos = (monto) => `$${monto.toLocaleString('es-AR')}`
+
+// ── Placares (/placares) ──
+// PROVISORIO: precios de la landing de placards de abril 2026 (placard de 2 m a
+// $1.824.000, corredizas +$120.000, puerta espejada +$80.000). Marcelo tiene que
+// pasar la lista vigente; cuando llegue, se cambia acá y en ningún otro lado.
+
+/** Placard de piso a techo con interiores incluidos (bauleras, cajonera, pantalonero, barral). */
+export const PLACARES = {
+  provisorio: true,
+  /** Precio por metro de ancho. */
+  precioMetro: 912000,
+  anchoMin: 100,
+  anchoMax: 400,
+  paso: 10,
+  anchoInicial: 200,
+  /** Sistema de puertas corredizas en lugar de batientes, por placard. */
+  corredizas: 120000,
+  /** Puerta con espejo, por puerta. */
+  espejo: 80000,
+  espejosMax: 4,
+}

@@ -15,8 +15,7 @@ const OLD_LANDINGS = [
   ['/cocinas-a-medida', '/cocinas'],
   ['/cocina-240', '/cocinas'],
   ['/presupuesto', '/'],
-  ['/placards', '/'],
-  ['/placares', '/'],
+  ['/placards', '/placares'],
   // Vínculos a sitio de Google Ads (cargados en feb 2026): rechazados por 404.
   ['/presupuestador', '/cocinas#calculadora'],
   ['/trabajos-realizados', '/cocinas#trabajos'],
